@@ -6,18 +6,19 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 public class FileLoader {
 	
-	static List<String> lines;
-	
-	static void loadFileData(String fileLocation) {
+	public static List<String> loadFileData(String fileLocation) {
 		
 		try{
 		
-			lines = new ArrayList<String>();
+			List<String> lines = new ArrayList<String>();
 			
 			FileInputStream fileInputStream = new FileInputStream(fileLocation);
 			GZIPInputStream gzipInputStream = new GZIPInputStream(fileInputStream);
@@ -28,30 +29,29 @@ public class FileLoader {
 				lines.add(line);
 			}
 			bufferReader.close();
+			return lines;
 		
 		}catch(FileNotFoundException e){
-			e.printStackTrace();
+			System.out.println("Provide file doesn't exist");
+			return null;
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Error while reading file");
+			return null;
 		}
 	}
 	
-	static List<String> getLines(){
-		return lines;
-	}
 	
-	public static void main(String[] args){
-		
-		String fileLocation;
-		if(args.length > 0){
-			fileLocation = args[0];
-			System.out.println(fileLocation);
-			FileLoader.loadFileData(fileLocation);
-			System.out.println(FileLoader.getLines());
-			System.out.println(FileLoader.getLines().size());
-		}
-		
-	}
 
+	public static HashMap<String, Float> calculateTMax(HashMap<String, HashMap<String, Integer>> records){
+		
+		HashMap<String, Float> avgTMax = new HashMap<String, Float>();
+		Iterator it = records.entrySet().iterator();
+		while(it.hasNext()){
+			Map.Entry<String, HashMap<String, Integer>> pair = (Map.Entry<String, HashMap<String, Integer>>)it.next();
+			Float avg = (float)pair.getValue().get("Sum") / (float)pair.getValue().get("Count");
+			avgTMax.put(pair.getKey(), avg);
+		}
+		return avgTMax;
+	}
+	
 }
