@@ -4,8 +4,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
+/**
+ * This class is main class of the application
+ * @author Darshan
+ *
+ */
 public class Run {
 	
+	/**
+	 * This methods read the command line input
+	 * @return
+	 */
 	public static int readOption(){
 		
 		try{
@@ -18,6 +27,9 @@ public class Run {
 
 	}
 	
+	/**
+	 * This method prints the available options
+	 */
 	public static void printOptions(){
 		System.out.println("Please provide any of the below option by entering (1 to 6)");
 		System.out.println(String.format("%-10s : %s" , "Option 1", "Sequential Run" ));
@@ -28,6 +40,16 @@ public class Run {
 		System.out.println(String.format("%-10s : %s" , "Option 6", "Quit" ));
 	}
 	
+	/**
+	 * This method prints the time difference between startTime and endTime
+	 * @param startTime
+	 * @param endTime
+	 */
+	public static void printRunTime(long startTime, long endTime){
+		
+		System.out.println("Code Run Time (Milliseconds) : "+ (endTime-startTime));
+		
+	}
 	public static void main(String[] args){
 		
 		String fileLocation;
@@ -43,25 +65,37 @@ public class Run {
 				try {
 					printOptions();
 					int option = readOption();
+					long startTime = System.currentTimeMillis();
+					long endTime = 0l;
 					switch(option){
 					case 1:
 						// Sequential Run
 						SeqThreads.runSeq(lines);
+						endTime = System.currentTimeMillis();
+						printRunTime(startTime, endTime);
 						break;
 					case 2:
 						// Parallel with No Lock Run
 						NoLockThreads.runNoLock(lines);
+						 endTime = System.currentTimeMillis();
+						 printRunTime(startTime, endTime);
 						break;
 					case 3:
 						// Parallel with coarse Lock
 						CoarseLock.runCoarseLock(lines);
+						endTime = System.currentTimeMillis();
+						printRunTime(startTime, endTime);
 						break;
 					case 4:
 						// Parallel with Fine Lock Run
 						FineLock.runFineLock(lines);
+						endTime = System.currentTimeMillis();
+						printRunTime(startTime, endTime);
 						break;
 					case 5:
 						NoSharing.runNoSharing(lines);
+						endTime = System.currentTimeMillis();
+						printRunTime(startTime, endTime);
 						break;
 					case 6:
 						flag=false;
@@ -74,8 +108,6 @@ public class Run {
 					e.printStackTrace();
 				}
 			}
-			
-			
 			
 		}else{
 			System.out.println("Note: This program needs file path as argument.");

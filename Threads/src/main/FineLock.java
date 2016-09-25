@@ -5,6 +5,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class implements Fine Lock strategy on multiple threads
+ * @author Darshan
+ *
+ */
 public class FineLock extends Thread{
 	
 	private List<String> lines;
@@ -15,6 +20,12 @@ public class FineLock extends Thread{
 		this.records = records;
 	}
 	
+	
+	/**
+	 * This methods parse the file lines and adds station Id and its TMAX into 
+	 * Records (Accumulated Data Structure) based upon multithreading fine lock
+	 * scheme
+	 */
 	public void run() {
 		
 		String id;
@@ -37,6 +48,13 @@ public class FineLock extends Thread{
 		}	
 	}
 	
+	/**
+	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
+	 * with having fine lock on accumulation data structure
+	 * @param records : accumulation data structure
+	 * @param id : Station ID
+	 * @param value : Station TMAX value
+	 */
 	public static void addIntoRecords(HashMap<String, HashMap<String, Integer>> records, String id, String value){
 		
 		HashMap<String, Integer> values = null;
@@ -52,7 +70,7 @@ public class FineLock extends Thread{
 					values.put("Sum", sum+Integer.parseInt(value));
 				}
 			}catch(Exception e){
-				System.out.println("Check the values");
+				//e.printStackTrace();
 			}
 		}else{
 			values = new HashMap<String, Integer>();
@@ -65,7 +83,12 @@ public class FineLock extends Thread{
 		
 	}
 	
-
+	/**
+	 * This methods applies the Fine Lock method with multiple threads on given list of lines
+	 * @param lines
+	 * @return HashMap which key is station ID and value is average TMAX Temperature
+	 * @throws InterruptedException
+	 */
 	public static HashMap<String, Float> runFineLock(List<String> lines) throws InterruptedException{
 		
 		
@@ -93,7 +116,7 @@ public class FineLock extends Thread{
 		thread3.join();
 		thread4.join();
 
-		HashMap<String, Float> avgTMax = FileLoader.calculateTMax(records);
+		HashMap<String, Float> avgTMax = FileLoader.calculateAvgTMax(records);
 		return avgTMax;
 	}
 }

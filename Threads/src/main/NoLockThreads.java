@@ -5,6 +5,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class implements No Locking strategies on multiple threads
+ * @author Darshan
+ *
+ */
 public class NoLockThreads extends Thread{
 		
 	private List<String> lines;
@@ -16,7 +21,12 @@ public class NoLockThreads extends Thread{
 		this.records = records;
 	}
 	
-	 public void run() {
+
+	/**
+	 * This methods parse the file lines and adds station Id and its TMAX into 
+	 * Records (Accumulated Data Structure)
+	 */
+	public void run() {
 		 
 		HashMap<String, Integer> values = null;
 			
@@ -56,8 +66,14 @@ public class NoLockThreads extends Thread{
 				}
 			}
 		}
-	 }
+	}
 	 
+	 /**
+		 * This methods applies the No Lock method with multiple threads on given list of lines
+		 * @param lines
+		 * @return HashMap which key is station ID and value is average TMAX Temperature
+		 * @throws InterruptedException
+		 */
 	 public static HashMap<String, Float> runNoLock(List<String> lines) throws InterruptedException{
 			
 			
@@ -84,8 +100,8 @@ public class NoLockThreads extends Thread{
 		thread2.join();
 		thread3.join();
 		thread4.join();
-
-		HashMap<String, Float> avgTMax = FileLoader.calculateTMax(records);
+	
+		HashMap<String, Float> avgTMax = FileLoader.calculateAvgTMax(records);
 		return avgTMax;
 			
 	}

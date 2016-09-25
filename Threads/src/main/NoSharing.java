@@ -5,6 +5,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class implements No sharing strategies on multiple threads
+ * @author Darshan
+ *
+ */
 public class NoSharing extends Thread{
 	
 	private List<String> lines;
@@ -15,6 +20,11 @@ public class NoSharing extends Thread{
 		this.records = new HashMap<String, HashMap<String, Integer>>();
 	}
 	
+	/**
+	 * This methods parse the file lines and adds station Id and its TMAX into 
+	 * Records (Accumulated Data Structure) based upon multithreading no sharing
+	 * scheme
+	 */
 	public void run() {
 		
 		String id;
@@ -32,16 +42,25 @@ public class NoSharing extends Thread{
 				continue;
 			}
 			else{
-				CoarseLock.addIntoRecords(this.records, id, value);
+				NoSharing.addIntoRecords(this.records, id, value);
 			}
 		}	
 	
 	}
 	
+	/**
+	 * @return Records (Accumulated Data Structure)
+	 */
 	public HashMap<String, HashMap<String, Integer>> getRecords(){
 		return this.records;
 	}
 	
+	/**
+	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
+	 * @param records : accumulation data structure
+	 * @param id : Station ID
+	 * @param value : Station TMAX value
+	 */
 	public static void addIntoRecords(HashMap<String, HashMap<String, Integer>> records, String id, String value){
 		
 		HashMap<String, Integer> values = null;
@@ -69,6 +88,13 @@ public class NoSharing extends Thread{
 		
 	}
 	
+	/**
+	 * This method merge two given HashMap. If common key exists in the both HashMap then their values are summed up 
+	 * in the return HashMap.
+	 * @param firstMap
+	 * @param secondMap
+	 * @return
+	 */
 	public static HashMap<String, HashMap<String, Integer>> mergeMap(HashMap<String, HashMap<String, Integer>> firstMap,
 			HashMap<String, HashMap<String, Integer>> secondMap){
 		
@@ -88,6 +114,13 @@ public class NoSharing extends Thread{
 		return returnMap;
 	}
 
+	
+	/**
+	 * This methods applies the No sharing strategy with multiple threads on given list of lines
+	 * @param lines
+	 * @return HashMap which key is station ID and value is average TMAX Temperature
+	 * @throws InterruptedException
+	 */
 	public static HashMap<String, Float> runNoSharing(List<String> lines) throws InterruptedException{
 		
 		
@@ -114,16 +147,18 @@ public class NoSharing extends Thread{
 		thread3.join();
 		thread4.join();
 		
+		// Collect Records from each threads
 		HashMap<String, HashMap<String, Integer>> firstRecords = thread1.getRecords();
 		HashMap<String, HashMap<String, Integer>> secondRecords = thread2.getRecords();
 		HashMap<String, HashMap<String, Integer>> thirdRecords = thread3.getRecords();
 		HashMap<String, HashMap<String, Integer>> forthRecords = thread4.getRecords();
 		
+		// Merge the calculated Records
 		HashMap<String, HashMap<String, Integer>> firstMerge = NoSharing.mergeMap(firstRecords, secondRecords);
 		HashMap<String, HashMap<String, Integer>> secondMerge = NoSharing.mergeMap(firstMerge, thirdRecords);
 		HashMap<String, HashMap<String, Integer>> thirdMerge = NoSharing.mergeMap(secondMerge, forthRecords);
 		
-		HashMap<String, Float> avgTMax = FileLoader.calculateTMax(thirdMerge);
+		HashMap<String, Float> avgTMax = FileLoader.calculateAvgTMax(thirdMerge);
 		return avgTMax;
 	}
 }

@@ -12,8 +12,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * FileLoader reads the given file and converts into an array of lines.
+ * @author Darshan
+ *
+ */
 public class FileLoader {
 	
+	/**
+	 * This methods reads the given file and returns an array of lines.
+	 * @param fileLocation
+	 * @return an array of lines
+	 */
 	public static List<String> loadFileData(String fileLocation) {
 		
 		try{
@@ -41,8 +51,12 @@ public class FileLoader {
 	}
 	
 	
-
-	public static HashMap<String, Float> calculateTMax(HashMap<String, HashMap<String, Integer>> records){
+	/**
+	 * This method uses accumulation data structure to calculate average max temperature for each station
+	 * @param records
+	 * @return HashMap with key as station ID and value as average maximum temperature
+	 */
+	public static HashMap<String, Float> calculateAvgTMax(HashMap<String, HashMap<String, Integer>> records){
 		
 		HashMap<String, Float> avgTMax = new HashMap<String, Float>();
 		Iterator it = records.entrySet().iterator();
