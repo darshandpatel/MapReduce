@@ -1,0 +1,31 @@
+apply plugin: 'java'
+apply plugin: 'application'
+mainClassName = "code.WordCount"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile "org.apache.hadoop:hadoop-common:2.7.2"
+    compile "org.apache.hadoop:hadoop-client:2.7.2"
+    compile "org.apache.hadoop:hadoop-mapreduce-client-jobclient:2.7.2"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir './src'
+        }
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'code.WordCount'
+        )
+    }
+}
+
+
