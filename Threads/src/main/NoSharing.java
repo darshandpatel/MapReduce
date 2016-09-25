@@ -76,7 +76,7 @@ public class NoSharing extends Thread{
 				values.put("Count", count+1);
 				values.put("Sum", sum+Integer.parseInt(value));
 				if(includeFibonnaci){
-					Fibonacci.calculateFib(17);
+					Fibonacci.calculateFib(Constant.fibConst);
 				}
 			}catch(Exception e){
 				System.out.println("Check the values");
@@ -87,7 +87,7 @@ public class NoSharing extends Thread{
 			values.put("Sum", Integer.parseInt(value));
 			records.put(id, values);
 			if(includeFibonnaci){
-				Fibonacci.calculateFib(17);
+				Fibonacci.calculateFib(Constant.fibConst);
 			}
 		}
 	}
