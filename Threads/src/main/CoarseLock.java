@@ -14,10 +14,13 @@ public class CoarseLock extends Thread{
 	
 	private List<String> lines;
 	private HashMap<String, HashMap<String, Integer>> records;
+	private Boolean includeFibonnaci;
 	
-	CoarseLock(List<String> lines, HashMap<String, HashMap<String, Integer>> records){
+	CoarseLock(List<String> lines, HashMap<String, HashMap<String, Integer>> records,
+			Boolean includeFibonnaci){
 		this.lines = lines;
 		this.records = records;
+		this.includeFibonnaci = includeFibonnaci;
 	}
 	
 	/**
@@ -38,11 +41,11 @@ public class CoarseLock extends Thread{
 			type = parts[2].trim();
 			value = parts[3].trim();
 			
-			if(id.equals("") && type.equals("") && !type.equals(Constant.TMAX)){
+			if(id.equals("") || type.equals("") || !type.equals(Constant.TMAX)){
 				continue;
 			}
 			else{
-				CoarseLock.addIntoRecords(this.records, id, value);
+				addIntoRecords(id, value);
 			}
 		}	
 	}
@@ -50,11 +53,10 @@ public class CoarseLock extends Thread{
 	/**
 	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
 	 * with having coarse lock on accumulation data structure
-	 * @param records : accumulation data structure
 	 * @param id : Station ID
 	 * @param value : Station TMAX value
 	 */
-	public static void addIntoRecords(HashMap<String, HashMap<String, Integer>> records, String id, String value){
+	public void addIntoRecords(String id, String value){
 		
 		synchronized(records){
 			
@@ -68,6 +70,9 @@ public class CoarseLock extends Thread{
 					sum = values.get("Sum");
 					values.put("Count", count+1);
 					values.put("Sum", sum+Integer.parseInt(value));
+					if(includeFibonnaci){
+						Fibonacci.calculateFib(17);
+					}
 				}catch(Exception e){
 					System.out.println("Check the values");
 				}
@@ -76,6 +81,9 @@ public class CoarseLock extends Thread{
 				values.put("Count", 1);
 				values.put("Sum", Integer.parseInt(value));
 				records.put(id, values);
+				if(includeFibonnaci){
+					Fibonacci.calculateFib(17);
+				}
 			}
 		}
 	}
@@ -83,10 +91,12 @@ public class CoarseLock extends Thread{
 	/**
 	 * This methods applies the Coarse Lock method with multiple threads on given list of lines
 	 * @param lines
+	 * @param includeFibonnaci : whether to run Fibonnaci(17) code along with normal program run
 	 * @return HashMap which key is station ID and value is average TMAX Temperature
 	 * @throws InterruptedException
 	 */
-	public static HashMap<String, Float> runCoarseLock(List<String> lines) throws InterruptedException{
+	public static HashMap<String, Float> runCoarseLock(List<String> lines,
+			Boolean includeFibonnaci) throws InterruptedException{
 		
 		HashMap<String, HashMap<String, Integer>> records = new HashMap<String, HashMap<String, Integer>>();
 		Integer nbrOfThreads = 4; // Number of cores in the processors
@@ -97,10 +107,10 @@ public class CoarseLock extends Thread{
 		List<String> thirdPart = lines.subList((int)totalRecords/2, (int)3*totalRecords/4);
 		List<String> fourthPart = lines.subList((int)3*totalRecords/4, totalRecords);
 		
-		CoarseLock thread1 = new CoarseLock(firstPart, records);
-		CoarseLock thread2 = new CoarseLock(secondPart, records);
-		CoarseLock thread3 = new CoarseLock(thirdPart, records);
-		CoarseLock thread4 = new CoarseLock(fourthPart, records);
+		CoarseLock thread1 = new CoarseLock(firstPart, records, includeFibonnaci);
+		CoarseLock thread2 = new CoarseLock(secondPart, records, includeFibonnaci);
+		CoarseLock thread3 = new CoarseLock(thirdPart, records, includeFibonnaci);
+		CoarseLock thread4 = new CoarseLock(fourthPart, records, includeFibonnaci);
 		
 		thread1.start();
 		thread2.start();

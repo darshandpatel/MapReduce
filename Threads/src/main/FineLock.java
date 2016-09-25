@@ -14,12 +14,14 @@ public class FineLock extends Thread{
 	
 	private List<String> lines;
 	private HashMap<String, HashMap<String, Integer>> records;
+	private Boolean includeFibonnaci;
 	
-	FineLock(List<String> lines, HashMap<String, HashMap<String, Integer>> records){
+	FineLock(List<String> lines, HashMap<String, HashMap<String, Integer>> records,
+			Boolean includeFibonnaci){
 		this.lines = lines;
 		this.records = records;
+		this.includeFibonnaci = includeFibonnaci;
 	}
-	
 	
 	/**
 	 * This methods parse the file lines and adds station Id and its TMAX into 
@@ -39,11 +41,11 @@ public class FineLock extends Thread{
 			type = parts[2].trim();
 			value = parts[3].trim();
 			
-			if(id.equals("") && type.equals("") && !type.equals(Constant.TMAX)){
+			if(id.equals("") || type.equals("") || !type.equals(Constant.TMAX)){
 				continue;
 			}
 			else{
-				FineLock.addIntoRecords(this.records, id, value);
+				addIntoRecords(id, value);
 			}
 		}	
 	}
@@ -51,11 +53,10 @@ public class FineLock extends Thread{
 	/**
 	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
 	 * with having fine lock on accumulation data structure
-	 * @param records : accumulation data structure
 	 * @param id : Station ID
 	 * @param value : Station TMAX value
 	 */
-	public static void addIntoRecords(HashMap<String, HashMap<String, Integer>> records, String id, String value){
+	public void addIntoRecords(String id, String value){
 		
 		HashMap<String, Integer> values = null;
 		int count=0;
@@ -63,33 +64,40 @@ public class FineLock extends Thread{
 		if(records.containsKey(id)){
 			try{
 				values = records.get(id);
-				synchronized(FineLock.class){
+				synchronized(values){
 					count = values.get("Count");
 					sum = values.get("Sum");
 					values.put("Count", count+1);
 					values.put("Sum", sum+Integer.parseInt(value));
+					if(includeFibonnaci){
+						Fibonacci.calculateFib(17);
+					}
 				}
 			}catch(Exception e){
 				//e.printStackTrace();
 			}
 		}else{
 			values = new HashMap<String, Integer>();
-			synchronized(FineLock.class){
+			synchronized(values){
 				values.put("Count", 1);
 				values.put("Sum", Integer.parseInt(value));
 				records.put(id, values);
+				if(includeFibonnaci){
+					Fibonacci.calculateFib(17);
+				}
 			}
 		}
-		
 	}
 	
 	/**
 	 * This methods applies the Fine Lock method with multiple threads on given list of lines
 	 * @param lines
+	 * @param includeFibonnaci : whether to run Fibonnaci(17) code along with normal program run
 	 * @return HashMap which key is station ID and value is average TMAX Temperature
 	 * @throws InterruptedException
 	 */
-	public static HashMap<String, Float> runFineLock(List<String> lines) throws InterruptedException{
+	public static HashMap<String, Float> runFineLock(List<String> lines,
+			Boolean includeFibonnaci) throws InterruptedException{
 		
 		
 		HashMap<String, HashMap<String, Integer>> records = new HashMap<String, HashMap<String, Integer>>();
@@ -101,10 +109,10 @@ public class FineLock extends Thread{
 		List<String> thirdPart = lines.subList((int)totalRecords/2, (int)3*totalRecords/4);
 		List<String> fourthPart = lines.subList((int)3*totalRecords/4, totalRecords);
 		
-		FineLock thread1 = new FineLock(firstPart, records);
-		FineLock thread2 = new FineLock(secondPart, records);
-		FineLock thread3 = new FineLock(thirdPart, records);
-		FineLock thread4 = new FineLock(fourthPart, records);
+		FineLock thread1 = new FineLock(firstPart, records, includeFibonnaci);
+		FineLock thread2 = new FineLock(secondPart, records, includeFibonnaci);
+		FineLock thread3 = new FineLock(thirdPart, records, includeFibonnaci);
+		FineLock thread4 = new FineLock(fourthPart, records, includeFibonnaci);
 		
 		thread1.start();
 		thread2.start();

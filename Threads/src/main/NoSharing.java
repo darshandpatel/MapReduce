@@ -14,10 +14,12 @@ public class NoSharing extends Thread{
 	
 	private List<String> lines;
 	private HashMap<String, HashMap<String, Integer>> records;
+	private Boolean includeFibonnaci;
 	
-	NoSharing(List<String> lines){
+	NoSharing(List<String> lines, Boolean includeFibonnaci){
 		this.lines = lines;
 		this.records = new HashMap<String, HashMap<String, Integer>>();
+		this.includeFibonnaci = includeFibonnaci;
 	}
 	
 	/**
@@ -42,7 +44,7 @@ public class NoSharing extends Thread{
 				continue;
 			}
 			else{
-				NoSharing.addIntoRecords(this.records, id, value);
+				addIntoRecords(id, value);
 			}
 		}	
 	
@@ -57,11 +59,10 @@ public class NoSharing extends Thread{
 	
 	/**
 	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
-	 * @param records : accumulation data structure
 	 * @param id : Station ID
 	 * @param value : Station TMAX value
 	 */
-	public static void addIntoRecords(HashMap<String, HashMap<String, Integer>> records, String id, String value){
+	public void addIntoRecords(String id, String value){
 		
 		HashMap<String, Integer> values = null;
 		int count=0;
@@ -74,7 +75,9 @@ public class NoSharing extends Thread{
 				sum = values.get("Sum");
 				values.put("Count", count+1);
 				values.put("Sum", sum+Integer.parseInt(value));
-				
+				if(includeFibonnaci){
+					Fibonacci.calculateFib(17);
+				}
 			}catch(Exception e){
 				System.out.println("Check the values");
 			}
@@ -83,9 +86,10 @@ public class NoSharing extends Thread{
 			values.put("Count", 1);
 			values.put("Sum", Integer.parseInt(value));
 			records.put(id, values);
-			
+			if(includeFibonnaci){
+				Fibonacci.calculateFib(17);
+			}
 		}
-		
 	}
 	
 	/**
@@ -118,10 +122,12 @@ public class NoSharing extends Thread{
 	/**
 	 * This methods applies the No sharing strategy with multiple threads on given list of lines
 	 * @param lines
+	 * @param includeFibonnaci : whether to run Fibonnaci(17) code along with normal program run
 	 * @return HashMap which key is station ID and value is average TMAX Temperature
 	 * @throws InterruptedException
 	 */
-	public static HashMap<String, Float> runNoSharing(List<String> lines) throws InterruptedException{
+	public static HashMap<String, Float> runNoSharing(List<String> lines, 
+			Boolean includeFibonnaci) throws InterruptedException{
 		
 		
 		Integer nbrOfThreads = 4; // Number of cores in the processors
@@ -132,10 +138,10 @@ public class NoSharing extends Thread{
 		List<String> thirdPart = lines.subList((int)totalRecords/2, (int)3*totalRecords/4);
 		List<String> fourthPart = lines.subList((int)3*totalRecords/4, totalRecords);
 		
-		NoSharing thread1 = new NoSharing(firstPart);
-		NoSharing thread2 = new NoSharing(secondPart);
-		NoSharing thread3 = new NoSharing(thirdPart);
-		NoSharing thread4 = new NoSharing(fourthPart);
+		NoSharing thread1 = new NoSharing(firstPart, includeFibonnaci);
+		NoSharing thread2 = new NoSharing(secondPart, includeFibonnaci);
+		NoSharing thread3 = new NoSharing(thirdPart, includeFibonnaci);
+		NoSharing thread4 = new NoSharing(fourthPart, includeFibonnaci);
 		
 		thread1.start();
 		thread2.start();

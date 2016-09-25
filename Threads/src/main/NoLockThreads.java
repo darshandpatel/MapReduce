@@ -14,14 +14,15 @@ public class NoLockThreads extends Thread{
 		
 	private List<String> lines;
 	private HashMap<String, HashMap<String, Integer>> records;
-	static HashMap<String, Float> avgTMax;
+	private Boolean includeFibonnaci;
 	
-	public NoLockThreads(List<String> lines, HashMap<String, HashMap<String, Integer>> records){
+	public NoLockThreads(List<String> lines, HashMap<String, HashMap<String, Integer>> records,
+			Boolean includeFibonnaci){
 		this.lines = lines;
 		this.records = records;
+		this.includeFibonnaci = includeFibonnaci;
 	}
 	
-
 	/**
 	 * This methods parse the file lines and adds station Id and its TMAX into 
 	 * Records (Accumulated Data Structure)
@@ -44,7 +45,7 @@ public class NoLockThreads extends Thread{
 			type = parts[2].trim();
 			value = parts[3].trim();
 			
-			if(id.equals("") && type.equals("") && !type.equals(Constant.TMAX)){
+			if(id.equals("") || type.equals("") || !type.equals(Constant.TMAX)){
 				continue;
 			}
 			else{
@@ -55,6 +56,9 @@ public class NoLockThreads extends Thread{
 						sum = values.get("Sum");
 						values.put("Count", count+1);
 						values.put("Sum", sum+Integer.parseInt(value));
+						if(includeFibonnaci){
+							Fibonacci.calculateFib(17);
+						}
 					}catch(Exception e){
 						//e.printStackTrace();
 					}
@@ -63,18 +67,23 @@ public class NoLockThreads extends Thread{
 					values.put("Count", 1);
 					values.put("Sum", Integer.parseInt(value));
 					records.put(id, values);
+					if(includeFibonnaci){
+						Fibonacci.calculateFib(17);
+					}
 				}
 			}
 		}
 	}
 	 
 	 /**
-		 * This methods applies the No Lock method with multiple threads on given list of lines
-		 * @param lines
-		 * @return HashMap which key is station ID and value is average TMAX Temperature
-		 * @throws InterruptedException
-		 */
-	 public static HashMap<String, Float> runNoLock(List<String> lines) throws InterruptedException{
+	 * This methods applies the No Lock method with multiple threads on given list of lines
+	 * @param lines
+	 * @param includeFibonnaci : whether to run Fibonnaci(17) code along with normal program run
+	 * @return HashMap which key is station ID and value is average TMAX Temperature
+	 * @throws InterruptedException
+	 */
+	 public static HashMap<String, Float> runNoLock(List<String> lines,
+			 Boolean includeFibonnaci) throws InterruptedException{
 			
 			
 		HashMap<String, HashMap<String, Integer>> records = new HashMap<String, HashMap<String, Integer>>();
@@ -86,10 +95,10 @@ public class NoLockThreads extends Thread{
 		List<String> thirdPart = lines.subList((int)totalRecords/2, (int)3*totalRecords/4);
 		List<String> fourthPart = lines.subList((int)3*totalRecords/4, totalRecords);
 		
-		NoLockThreads thread1 = new NoLockThreads(firstPart, records);
-		NoLockThreads thread2 = new NoLockThreads(secondPart, records);
-		NoLockThreads thread3 = new NoLockThreads(thirdPart, records);
-		NoLockThreads thread4 = new NoLockThreads(fourthPart, records);
+		NoLockThreads thread1 = new NoLockThreads(firstPart, records, includeFibonnaci);
+		NoLockThreads thread2 = new NoLockThreads(secondPart, records, includeFibonnaci);
+		NoLockThreads thread3 = new NoLockThreads(thirdPart, records, includeFibonnaci);
+		NoLockThreads thread4 = new NoLockThreads(fourthPart, records, includeFibonnaci);
 		
 		thread1.start();
 		thread2.start();

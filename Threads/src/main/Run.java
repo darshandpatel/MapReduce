@@ -31,13 +31,18 @@ public class Run {
 	 * This method prints the available options
 	 */
 	public static void printOptions(){
-		System.out.println("Please provide any of the below option by entering (1 to 6)");
+		System.out.println("Please provide any of the below option by entering (1 to 11)");
 		System.out.println(String.format("%-10s : %s" , "Option 1", "Sequential Run" ));
-		System.out.println(String.format("%-10s : %s" , "Option 2", "Parallel with No Lock Run" ));
-		System.out.println(String.format("%-10s : %s" , "Option 3", "Parallel with Coarse Lock Run" ));
-		System.out.println(String.format("%-10s : %s" , "Option 4", "Parallel with Fine Lock Run" ));
-		System.out.println(String.format("%-10s : %s" , "Option 5", "Parallel with No sharing Run" ));
-		System.out.println(String.format("%-10s : %s" , "Option 6", "Quit" ));
+		System.out.println(String.format("%-10s : %s" , "Option 2", "Sequential with Fibonacci(17) Run" ));
+		System.out.println(String.format("%-10s : %s" , "Option 3", "Parallel with No Lock Run" ));
+		System.out.println(String.format("%-10s : %s" , "Option 4", "Parallel with No Lock and Fibonacci(17) Run" ));
+		System.out.println(String.format("%-10s : %s" , "Option 5", "Parallel with Coarse Lock Run" ));
+		System.out.println(String.format("%-10s : %s" , "Option 6", "Parallel with Coarse Lock and Fibonacci(17) Run" ));
+		System.out.println(String.format("%-10s : %s" , "Option 7", "Parallel with Fine Lock Run" ));
+		System.out.println(String.format("%-10s : %s" , "Option 8", "Parallel with Fine Lock and Fibonacci(17) Run" ));
+		System.out.println(String.format("%-10s : %s" , "Option 9", "Parallel with No sharing Run" ));
+		System.out.println(String.format("%-10s : %s" , "Option 10", "Parallel with No sharing and Fibonacci(17) Run" ));
+		System.out.println(String.format("%-10s : %s" , "Option 11", "Quit" ));
 	}
 	
 	public static void printTestResult(HashMap<String, Float> avgTMax){
@@ -76,39 +81,75 @@ public class Run {
 					switch(option){
 					case 1:
 						// Sequential Run
-						avgTMax = SeqThreads.runSeq(lines);
+						avgTMax = SeqThreads.runSeq(lines, false);
 						endTime = System.currentTimeMillis();
 						printRunTime(startTime, endTime);
 						printTestResult(avgTMax);
 						break;
 					case 2:
-						// Parallel with No Lock Run
-						avgTMax = NoLockThreads.runNoLock(lines);
+						// Sequential Run with Fibonacci(17)
+						avgTMax = SeqThreads.runSeq(lines, true);
 						endTime = System.currentTimeMillis();
 						printRunTime(startTime, endTime);
 						printTestResult(avgTMax);
 						break;
 					case 3:
-						// Parallel with coarse Lock
-						avgTMax = CoarseLock.runCoarseLock(lines);
+						// Parallel with No Lock Run
+						avgTMax = NoLockThreads.runNoLock(lines, false);
 						endTime = System.currentTimeMillis();
 						printRunTime(startTime, endTime);
 						printTestResult(avgTMax);
 						break;
 					case 4:
-						// Parallel with Fine Lock Run
-						avgTMax = FineLock.runFineLock(lines);
+						// Parallel with No Lock and Fibonacci(17) Run
+						avgTMax = NoLockThreads.runNoLock(lines, true);
 						endTime = System.currentTimeMillis();
-						printTestResult(avgTMax);
 						printRunTime(startTime, endTime);
+						printTestResult(avgTMax);
 						break;
 					case 5:
-						avgTMax = NoSharing.runNoSharing(lines);
+						// Parallel with coarse Lock
+						avgTMax = CoarseLock.runCoarseLock(lines, false);
 						endTime = System.currentTimeMillis();
 						printRunTime(startTime, endTime);
 						printTestResult(avgTMax);
 						break;
 					case 6:
+						// Parallel with coarse Lock and Fibonacci(17) Run
+						avgTMax = CoarseLock.runCoarseLock(lines, true);
+						endTime = System.currentTimeMillis();
+						printRunTime(startTime, endTime);
+						printTestResult(avgTMax);
+						break;
+					case 7:
+						// Parallel with Fine Lock Run
+						avgTMax = FineLock.runFineLock(lines, false);
+						endTime = System.currentTimeMillis();
+						printTestResult(avgTMax);
+						printRunTime(startTime, endTime);
+						break;
+					case 8:
+						// Parallel with Fine Lock and Fibonacci(17) Run
+						avgTMax = FineLock.runFineLock(lines, true);
+						endTime = System.currentTimeMillis();
+						printTestResult(avgTMax);
+						printRunTime(startTime, endTime);
+						break;
+					case 9:
+						// Parallel with No Sharing Run
+						avgTMax = NoSharing.runNoSharing(lines, false);
+						endTime = System.currentTimeMillis();
+						printRunTime(startTime, endTime);
+						printTestResult(avgTMax);
+						break;
+					case 10:
+						// Parallel with No Sharing and Fibonacci(17) Run
+						avgTMax = NoSharing.runNoSharing(lines, true);
+						endTime = System.currentTimeMillis();
+						printRunTime(startTime, endTime);
+						printTestResult(avgTMax);
+						break;
+					case 11:
 						flag=false;
 						break;
 					default:
