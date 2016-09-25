@@ -63,7 +63,7 @@ public class FineLock extends Thread{
 		if(records.containsKey(id)){
 			try{
 				values = records.get(id);
-				synchronized(values){
+				synchronized(FineLock.class){
 					count = values.get("Count");
 					sum = values.get("Sum");
 					values.put("Count", count+1);
@@ -74,7 +74,7 @@ public class FineLock extends Thread{
 			}
 		}else{
 			values = new HashMap<String, Integer>();
-			synchronized(values){
+			synchronized(FineLock.class){
 				values.put("Count", 1);
 				values.put("Sum", Integer.parseInt(value));
 				records.put(id, values);

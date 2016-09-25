@@ -40,6 +40,11 @@ public class Run {
 		System.out.println(String.format("%-10s : %s" , "Option 6", "Quit" ));
 	}
 	
+	public static void printTestResult(HashMap<String, Float> avgTMax){
+		String key = "USC00242347";
+		System.out.println(key + " average temperature : "+ avgTMax.get(key));
+	}
+	
 	/**
 	 * This method prints the time difference between startTime and endTime
 	 * @param startTime
@@ -60,6 +65,7 @@ public class Run {
 			List<String> lines = FileLoader.loadFileData(fileLocation);
 			
 			Boolean flag = true;
+			HashMap<String, Float> avgTMax;
 			while(flag){
 				
 				try {
@@ -70,32 +76,37 @@ public class Run {
 					switch(option){
 					case 1:
 						// Sequential Run
-						SeqThreads.runSeq(lines);
+						avgTMax = SeqThreads.runSeq(lines);
 						endTime = System.currentTimeMillis();
 						printRunTime(startTime, endTime);
+						printTestResult(avgTMax);
 						break;
 					case 2:
 						// Parallel with No Lock Run
-						NoLockThreads.runNoLock(lines);
-						 endTime = System.currentTimeMillis();
-						 printRunTime(startTime, endTime);
+						avgTMax = NoLockThreads.runNoLock(lines);
+						endTime = System.currentTimeMillis();
+						printRunTime(startTime, endTime);
+						printTestResult(avgTMax);
 						break;
 					case 3:
 						// Parallel with coarse Lock
-						CoarseLock.runCoarseLock(lines);
+						avgTMax = CoarseLock.runCoarseLock(lines);
 						endTime = System.currentTimeMillis();
 						printRunTime(startTime, endTime);
+						printTestResult(avgTMax);
 						break;
 					case 4:
 						// Parallel with Fine Lock Run
-						FineLock.runFineLock(lines);
+						avgTMax = FineLock.runFineLock(lines);
 						endTime = System.currentTimeMillis();
+						printTestResult(avgTMax);
 						printRunTime(startTime, endTime);
 						break;
 					case 5:
-						NoSharing.runNoSharing(lines);
+						avgTMax = NoSharing.runNoSharing(lines);
 						endTime = System.currentTimeMillis();
 						printRunTime(startTime, endTime);
+						printTestResult(avgTMax);
 						break;
 					case 6:
 						flag=false;
