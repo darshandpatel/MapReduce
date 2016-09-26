@@ -42,7 +42,7 @@ public class NoSharing extends Thread{
 			type = parts[2].trim();
 			value = parts[3].trim();
 			
-			if(id.equals("") && type.equals("") && !type.equals(Constant.TMAX)){
+			if(id.equals("") || type.equals("") || !type.equals(Constant.TMAX)){
 				continue;
 			}
 			else{
@@ -79,11 +79,7 @@ public class NoSharing extends Thread{
 			values.put("Count", count+1);
 			values.put("Sum", sum+Integer.parseInt(value));
 			if(includeFibonacci){
-				long startTime = System.currentTimeMillis();
-				calculateFib(17);
-				long endTime = System.currentTimeMillis();
-				System.out.println((endTime-startTime));
-				
+				calculateFib(Constant.FIB_CONST);
 			}
 		}else{
 			values = new HashMap<String, Integer>();

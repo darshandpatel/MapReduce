@@ -82,7 +82,7 @@ public class FineLock extends Thread{
 					values.put("Count", count+1);
 					values.put("Sum", sum+Integer.parseInt(value));
 					if(includeFibonacci){
-						calculateFib(Constant.fibConst);
+						calculateFib(Constant.FIB_CONST);
 					}
 				}
 			}catch(Exception e){

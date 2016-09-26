@@ -249,6 +249,12 @@ public class Run {
 					endTime = System.currentTimeMillis();
 					printRunTime(startTime, endTime);
 					printTestResult(avgTMax);
+					/*
+					System.out.println("New NoShare");
+					NoShare.start(lines, true);
+					endTime = System.currentTimeMillis();
+					printRunTime(startTime, endTime);
+					*/
 					break;
 				case 11:
 					flag=false;

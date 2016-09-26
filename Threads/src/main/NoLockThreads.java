@@ -58,7 +58,7 @@ public class NoLockThreads extends Thread{
 						values.put("Count", count+1);
 						values.put("Sum", sum+Integer.parseInt(value));
 						if(includeFibonacci){
-							Fibonacci.calculateFib(Constant.fibConst);
+							Fibonacci.calculateFib(Constant.FIB_CONST);
 						}
 						
 					}else{
