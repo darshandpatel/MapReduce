@@ -18,7 +18,6 @@ public class NoSharing extends Thread{
 	
 	NoSharing(List<String> lines, Boolean includeFibonnaci){
 		this.lines = lines;
-		this.records = new HashMap<String, HashMap<String, Integer>>();
 		this.includeFibonnaci = includeFibonnaci;
 	}
 	
@@ -28,6 +27,10 @@ public class NoSharing extends Thread{
 	 * scheme
 	 */
 	public void run() {
+		
+		long startTime = System.currentTimeMillis();
+		
+		records = new HashMap<String, HashMap<String, Integer>>();
 		
 		String id;
 		String type;
@@ -47,6 +50,9 @@ public class NoSharing extends Thread{
 				addIntoRecords(id, value);
 			}
 		}	
+		
+		long endTime = System.currentTimeMillis();
+		System.out.println("Thead time : "+(endTime-startTime));
 	
 	}
 	
@@ -54,7 +60,7 @@ public class NoSharing extends Thread{
 	 * @return Records (Accumulated Data Structure)
 	 */
 	public HashMap<String, HashMap<String, Integer>> getRecords(){
-		return this.records;
+		return records;
 	}
 	
 	/**
@@ -68,27 +74,19 @@ public class NoSharing extends Thread{
 		int count=0;
 		int sum=0;
 		if(records.containsKey(id)){
-			try{
-				values = records.get(id);
-			
-				count = values.get("Count");
-				sum = values.get("Sum");
-				values.put("Count", count+1);
-				values.put("Sum", sum+Integer.parseInt(value));
-				if(includeFibonnaci){
-					Fibonacci.calculateFib(Constant.fibConst);
-				}
-			}catch(Exception e){
-				System.out.println("Check the values");
+			values = records.get(id);
+			count = values.get("Count");
+			sum = values.get("Sum");
+			values.put("Count", count+1);
+			values.put("Sum", sum+Integer.parseInt(value));
+			if(includeFibonnaci){
+				calculateFib(17);
 			}
 		}else{
 			values = new HashMap<String, Integer>();
 			values.put("Count", 1);
 			values.put("Sum", Integer.parseInt(value));
 			records.put(id, values);
-			if(includeFibonnaci){
-				Fibonacci.calculateFib(Constant.fibConst);
-			}
 		}
 	}
 	
@@ -118,6 +116,16 @@ public class NoSharing extends Thread{
 		return returnMap;
 	}
 
+	int calculateFib(int count){
+		
+		if(count == 0){
+			return 0;
+		}else if(count == 1){
+			return 1;
+		}else{
+			return calculateFib(count - 1) + calculateFib(count - 2);
+		}
+	}
 	
 	/**
 	 * This methods applies the No sharing strategy with multiple threads on given list of lines
@@ -163,6 +171,7 @@ public class NoSharing extends Thread{
 		HashMap<String, HashMap<String, Integer>> firstMerge = NoSharing.mergeMap(firstRecords, secondRecords);
 		HashMap<String, HashMap<String, Integer>> secondMerge = NoSharing.mergeMap(firstMerge, thirdRecords);
 		HashMap<String, HashMap<String, Integer>> thirdMerge = NoSharing.mergeMap(secondMerge, forthRecords);
+		
 		
 		HashMap<String, Float> avgTMax = FileLoader.calculateAvgTMax(thirdMerge);
 		return avgTMax;
