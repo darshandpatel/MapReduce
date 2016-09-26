@@ -14,13 +14,13 @@ public class FineLock extends Thread{
 	
 	private List<String> lines;
 	private HashMap<String, HashMap<String, Integer>> records;
-	private Boolean includeFibonnaci;
+	private Boolean includeFibonacci;
 	
 	FineLock(List<String> lines, HashMap<String, HashMap<String, Integer>> records,
-			Boolean includeFibonnaci){
+			Boolean includeFibonacci){
 		this.lines = lines;
 		this.records = records;
-		this.includeFibonnaci = includeFibonnaci;
+		this.includeFibonacci = includeFibonacci;
 	}
 	
 	/**
@@ -49,6 +49,18 @@ public class FineLock extends Thread{
 			}
 		}	
 	}
+		
+	int calculateFib(int count){
+		
+		if(count == 0){
+			return 0;
+		}else if(count == 1){
+			return 1;
+		}else{
+			return calculateFib(count - 1) + calculateFib(count - 2);
+		}
+	}
+
 	
 	/**
 	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
@@ -69,8 +81,8 @@ public class FineLock extends Thread{
 					sum = values.get("Sum");
 					values.put("Count", count+1);
 					values.put("Sum", sum+Integer.parseInt(value));
-					if(includeFibonnaci){
-						Fibonacci.calculateFib(17);
+					if(includeFibonacci){
+						calculateFib(Constant.fibConst);
 					}
 				}
 			}catch(Exception e){
@@ -82,9 +94,6 @@ public class FineLock extends Thread{
 				values.put("Count", 1);
 				values.put("Sum", Integer.parseInt(value));
 				records.put(id, values);
-				if(includeFibonnaci){
-					Fibonacci.calculateFib(17);
-				}
 			}
 		}
 	}

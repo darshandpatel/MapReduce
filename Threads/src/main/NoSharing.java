@@ -14,11 +14,12 @@ public class NoSharing extends Thread{
 	
 	private List<String> lines;
 	private HashMap<String, HashMap<String, Integer>> records;
-	private Boolean includeFibonnaci;
+	private Boolean includeFibonacci;
 	
-	NoSharing(List<String> lines, Boolean includeFibonnaci){
+	NoSharing(List<String> lines, Boolean includeFibonacci){
 		this.lines = lines;
-		this.includeFibonnaci = includeFibonnaci;
+		this.includeFibonacci = includeFibonacci;
+		this.records = new HashMap<String, HashMap<String, Integer>>(); 
 	}
 	
 	/**
@@ -29,8 +30,6 @@ public class NoSharing extends Thread{
 	public void run() {
 		
 		long startTime = System.currentTimeMillis();
-		
-		records = new HashMap<String, HashMap<String, Integer>>();
 		
 		String id;
 		String type;
@@ -79,8 +78,12 @@ public class NoSharing extends Thread{
 			sum = values.get("Sum");
 			values.put("Count", count+1);
 			values.put("Sum", sum+Integer.parseInt(value));
-			if(includeFibonnaci){
+			if(includeFibonacci){
+				long startTime = System.currentTimeMillis();
 				calculateFib(17);
+				long endTime = System.currentTimeMillis();
+				System.out.println((endTime-startTime));
+				
 			}
 		}else{
 			values = new HashMap<String, Integer>();
@@ -117,6 +120,7 @@ public class NoSharing extends Thread{
 	}
 
 	int calculateFib(int count){
+		
 		
 		if(count == 0){
 			return 0;

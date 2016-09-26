@@ -19,7 +19,7 @@ public class SeqThreads {
 	 */
 	public static void collectRecords(List<String> lines,
 			HashMap<String, HashMap<String, Integer>> records,
-			Boolean includeFibonnaci){
+			Boolean includeFibonacci){
 		
 		HashMap<String, Integer> values = null;
 		
@@ -41,27 +41,20 @@ public class SeqThreads {
 				continue;
 			}
 			else{
-				try{
-					if(records.containsKey(id)){
-						values = records.get(id);
-						count = values.get("Count");
-						sum = values.get("Sum");
-						values.put("Count", count+1);
-						values.put("Sum", sum+Integer.parseInt(value));
-						if(includeFibonnaci){
-							Fibonacci.calculateFib(Constant.fibConst);
-						}
-					}else{
-						values = new HashMap<String, Integer>();
-						values.put("Count", 1);
-						values.put("Sum", Integer.parseInt(value));
-						records.put(id, values);
-						if(includeFibonnaci){
-							Fibonacci.calculateFib(Constant.fibConst);
-						}
+				if(records.containsKey(id)){
+					values = records.get(id);
+					count = values.get("Count");
+					sum = values.get("Sum");
+					values.put("Count", count+1);
+					values.put("Sum", sum+Integer.parseInt(value));
+					if(includeFibonacci){
+						Fibonacci.calculateFib(Constant.fibConst);
 					}
-				}catch(Exception e){
-					//e.printStackTrace();
+				}else{
+					values = new HashMap<String, Integer>();
+					values.put("Count", 1);
+					values.put("Sum", Integer.parseInt(value));
+					records.put(id, values);
 				}
 			}
 		}	

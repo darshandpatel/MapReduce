@@ -14,13 +14,13 @@ public class NoLockThreads extends Thread{
 		
 	private List<String> lines;
 	private HashMap<String, HashMap<String, Integer>> records;
-	private Boolean includeFibonnaci;
+	private Boolean includeFibonacci;
 	
 	public NoLockThreads(List<String> lines, HashMap<String, HashMap<String, Integer>> records,
-			Boolean includeFibonnaci){
+			Boolean includeFibonacci){
 		this.lines = lines;
 		this.records = records;
-		this.includeFibonnaci = includeFibonnaci;
+		this.includeFibonacci = includeFibonacci;
 	}
 	
 	/**
@@ -49,27 +49,26 @@ public class NoLockThreads extends Thread{
 				continue;
 			}
 			else{
-				if(records.containsKey(id)){
-					try{
+				try{
+					if(records.containsKey(id)){
+						
 						values = records.get(id);
 						count = values.get("Count");
 						sum = values.get("Sum");
 						values.put("Count", count+1);
 						values.put("Sum", sum+Integer.parseInt(value));
-						if(includeFibonnaci){
+						if(includeFibonacci){
 							Fibonacci.calculateFib(Constant.fibConst);
 						}
-					}catch(Exception e){
-						//e.printStackTrace();
+						
+					}else{
+						values = new HashMap<String, Integer>();
+						values.put("Count", 1);
+						values.put("Sum", Integer.parseInt(value));
+						records.put(id, values);
 					}
-				}else{
-					values = new HashMap<String, Integer>();
-					values.put("Count", 1);
-					values.put("Sum", Integer.parseInt(value));
-					records.put(id, values);
-					if(includeFibonnaci){
-						Fibonacci.calculateFib(Constant.fibConst);
-					}
+				}catch(Exception e){
+					//e.printStackTrace();
 				}
 			}
 		}

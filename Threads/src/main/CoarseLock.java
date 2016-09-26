@@ -14,13 +14,13 @@ public class CoarseLock extends Thread{
 	
 	private List<String> lines;
 	private HashMap<String, HashMap<String, Integer>> records;
-	private Boolean includeFibonnaci;
+	private Boolean includeFibonacci;
 	
 	CoarseLock(List<String> lines, HashMap<String, HashMap<String, Integer>> records,
-			Boolean includeFibonnaci){
+			Boolean includeFibonacci){
 		this.lines = lines;
 		this.records = records;
-		this.includeFibonnaci = includeFibonnaci;
+		this.includeFibonacci = includeFibonacci;
 	}
 	
 	/**
@@ -50,6 +50,17 @@ public class CoarseLock extends Thread{
 		}	
 	}
 	
+	int calculateFib(int count){
+		
+		if(count == 0){
+			return 0;
+		}else if(count == 1){
+			return 1;
+		}else{
+			return calculateFib(count - 1) + calculateFib(count - 2);
+		}
+	}
+
 	/**
 	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
 	 * with having coarse lock on accumulation data structure
@@ -70,8 +81,8 @@ public class CoarseLock extends Thread{
 					sum = values.get("Sum");
 					values.put("Count", count+1);
 					values.put("Sum", sum+Integer.parseInt(value));
-					if(includeFibonnaci){
-						Fibonacci.calculateFib(Constant.fibConst);
+					if(includeFibonacci){
+						calculateFib(Constant.fibConst);
 					}
 				}catch(Exception e){
 					System.out.println("Check the values");
@@ -81,9 +92,6 @@ public class CoarseLock extends Thread{
 				values.put("Count", 1);
 				values.put("Sum", Integer.parseInt(value));
 				records.put(id, values);
-				if(includeFibonnaci){
-					Fibonacci.calculateFib(Constant.fibConst);
-				}
 			}
 		}
 	}
@@ -91,7 +99,7 @@ public class CoarseLock extends Thread{
 	/**
 	 * This methods applies the Coarse Lock method with multiple threads on given list of lines
 	 * @param lines
-	 * @param includeFibonnaci : whether to run Fibonnaci(17) code along with normal program run
+	 * @param includeFibonnaci : whether to run Fibonacci(17) code along with normal program run
 	 * @return HashMap which key is station ID and value is average TMAX Temperature
 	 * @throws InterruptedException
 	 */
