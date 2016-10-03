@@ -24,9 +24,9 @@ public class CoarseLock extends Thread{
 	}
 	
 	/**
-	 * This methods parse the file lines and adds station Id and its TMAX into 
-	 * Records (Accumulated Data Structure) based upon multithreading coarse lock
-	 * scheme
+	 * This methods parse the given lines and adds station Id as key and sum of its TMAX value
+	 * and count as value to Records (Accumulated Data Structure) based upon multithreading 
+	 * coarse lock scheme
 	 */
 	public void run() {
 		
@@ -50,25 +50,16 @@ public class CoarseLock extends Thread{
 		}	
 	}
 	
-	int calculateFib(int count){
-		
-		if(count == 0){
-			return 0;
-		}else if(count == 1){
-			return 1;
-		}else{
-			return calculateFib(count - 1) + calculateFib(count - 2);
-		}
-	}
 
 	/**
-	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
-	 * with having coarse lock on accumulation data structure
+	 * This methods adds the given station Id as key and given value in the accumulation 
+	 * data structure with having coarse lock on accumulation data structure
 	 * @param id : Station ID
 	 * @param value : Station TMAX value
 	 */
 	public void addIntoRecords(String id, String value){
 		
+		// Course lock on records (Shared data structure between threads)
 		synchronized(records){
 			
 			HashMap<String, Integer> values = null;
@@ -79,13 +70,14 @@ public class CoarseLock extends Thread{
 					values = records.get(id);
 					count = values.get("Count");
 					sum = values.get("Sum");
+					// Update record value
 					values.put("Count", count+1);
 					values.put("Sum", sum+Integer.parseInt(value));
 					if(includeFibonacci){
-						calculateFib(Constant.FIB_CONST);
+						Fibonacci.calculateFib(Constant.FIB_CONST);
 					}
 				}catch(Exception e){
-					System.out.println("Check the values");
+					//e.printStackTrace();
 				}
 			}else{
 				values = new HashMap<String, Integer>();
@@ -97,10 +89,10 @@ public class CoarseLock extends Thread{
 	}
 	
 	/**
-	 * This methods applies the Coarse Lock method with multiple threads on given list of lines
-	 * @param lines
+	 * This methods applies the Coarse Lock method with multiple threads on the given list of lines
+	 * @param lines : ArrayList of string
 	 * @param includeFibonnaci : whether to run Fibonacci(17) code along with normal program run
-	 * @return HashMap which key is station ID and value is average TMAX Temperature
+	 * @return HashMap where key is station ID and value is average TMAX Temperature
 	 * @throws InterruptedException
 	 */
 	public static HashMap<String, Float> runCoarseLock(List<String> lines,

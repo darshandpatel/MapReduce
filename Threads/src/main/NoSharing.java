@@ -23,14 +23,12 @@ public class NoSharing extends Thread{
 	}
 	
 	/**
-	 * This methods parse the file lines and adds station Id and its TMAX into 
-	 * Records (Accumulated Data Structure) based upon multithreading no sharing
-	 * scheme
+	 * This methods parse the given lines and adds station Id as key and sum of its TMAX value
+	 * and count as value to Records (Accumulated Data Structure) based upon multithreading 
+	 * No Sharing scheme
 	 */
 	public void run() {
-		
-		long startTime = System.currentTimeMillis();
-		
+
 		String id;
 		String type;
 		String value;
@@ -50,9 +48,6 @@ public class NoSharing extends Thread{
 			}
 		}	
 		
-		long endTime = System.currentTimeMillis();
-		System.out.println("Thead time : "+(endTime-startTime));
-	
 	}
 	
 	/**
@@ -63,7 +58,8 @@ public class NoSharing extends Thread{
 	}
 	
 	/**
-	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
+	 * This methods adds the given station Id as key and given value in the accumulation 
+	 * data structure 
 	 * @param id : Station ID
 	 * @param value : Station TMAX value
 	 */
@@ -79,7 +75,7 @@ public class NoSharing extends Thread{
 			values.put("Count", count+1);
 			values.put("Sum", sum+Integer.parseInt(value));
 			if(includeFibonacci){
-				calculateFib(Constant.FIB_CONST);
+				Fibonacci.calculateFib(Constant.FIB_CONST);
 			}
 		}else{
 			values = new HashMap<String, Integer>();
@@ -115,23 +111,12 @@ public class NoSharing extends Thread{
 		return returnMap;
 	}
 
-	int calculateFib(int count){
-		
-		
-		if(count == 0){
-			return 0;
-		}else if(count == 1){
-			return 1;
-		}else{
-			return calculateFib(count - 1) + calculateFib(count - 2);
-		}
-	}
 	
 	/**
-	 * This methods applies the No sharing strategy with multiple threads on given list of lines
-	 * @param lines
-	 * @param includeFibonnaci : whether to run Fibonnaci(17) code along with normal program run
-	 * @return HashMap which key is station ID and value is average TMAX Temperature
+	 * This methods applies the No Sharing method with multiple threads on the given list of lines
+	 * @param lines : ArrayList of string
+	 * @param includeFibonnaci : whether to run Fibonacci(17) code along with normal program run
+	 * @return HashMap where key is station ID and value is average TMAX Temperature
 	 * @throws InterruptedException
 	 */
 	public static HashMap<String, Float> runNoSharing(List<String> lines, 

@@ -22,8 +22,8 @@ public class FileLoader {
 	
 	/**
 	 * This methods reads the given file and returns an array of lines.
-	 * @param fileLocation
-	 * @return an array of lines
+	 * @param fileLocation : path of a file
+	 * @return an array of lines(string)
 	 */
 	public static List<String> loadFileData(String fileLocation) {
 		
@@ -51,11 +51,10 @@ public class FileLoader {
 		}
 	}
 	
-	
 	/**
 	 * This method uses accumulation data structure to calculate average max temperature for each station
-	 * @param records
-	 * @return HashMap with key as station ID and value as average maximum temperature
+	 * @param records : HashMap which has key as station ID and value as HashMap("Sum", "Count")
+	 * @return HashMap which has key as station ID and value as average maximum temperature
 	 */
 	public static HashMap<String, Float> calculateAvgTMax(HashMap<String, HashMap<String, Integer>> records){
 		

@@ -24,9 +24,9 @@ public class FineLock extends Thread{
 	}
 	
 	/**
-	 * This methods parse the file lines and adds station Id and its TMAX into 
-	 * Records (Accumulated Data Structure) based upon multithreading fine lock
-	 * scheme
+	 * This methods parse the given lines and adds station Id as key and sum of its TMAX value
+	 * and count as value to Records (Accumulated Data Structure) based upon multithreading 
+	 * fine lock scheme
 	 */
 	public void run() {
 		
@@ -50,21 +50,9 @@ public class FineLock extends Thread{
 		}	
 	}
 		
-	int calculateFib(int count){
-		
-		if(count == 0){
-			return 0;
-		}else if(count == 1){
-			return 1;
-		}else{
-			return calculateFib(count - 1) + calculateFib(count - 2);
-		}
-	}
-
-	
 	/**
-	 * This methods adds the given station Id and its TMAX value in the accumulation data structure
-	 * with having fine lock on accumulation data structure
+	 * This methods adds the given station Id as key and given value in the accumulation 
+	 * data structure with having fine lock on accumulation data structure
 	 * @param id : Station ID
 	 * @param value : Station TMAX value
 	 */
@@ -76,13 +64,14 @@ public class FineLock extends Thread{
 		if(records.containsKey(id)){
 			try{
 				values = records.get(id);
+				// Fine Lock
 				synchronized(values){
 					count = values.get("Count");
 					sum = values.get("Sum");
 					values.put("Count", count+1);
 					values.put("Sum", sum+Integer.parseInt(value));
 					if(includeFibonacci){
-						calculateFib(Constant.FIB_CONST);
+						Fibonacci.calculateFib(Constant.FIB_CONST);
 					}
 				}
 			}catch(Exception e){
@@ -99,10 +88,10 @@ public class FineLock extends Thread{
 	}
 	
 	/**
-	 * This methods applies the Fine Lock method with multiple threads on given list of lines
-	 * @param lines
-	 * @param includeFibonnaci : whether to run Fibonnaci(17) code along with normal program run
-	 * @return HashMap which key is station ID and value is average TMAX Temperature
+	 * This methods applies the Fine Lock method with multiple threads on the given list of lines
+	 * @param lines : ArrayList of string
+	 * @param includeFibonnaci : whether to run Fibonacci(17) code along with normal program run
+	 * @return HashMap where key is station ID and value is average TMAX Temperature
 	 * @throws InterruptedException
 	 */
 	public static HashMap<String, Float> runFineLock(List<String> lines,
