@@ -8,12 +8,18 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+/**
+ * NoCombiner class calls a map reduce job without combiner 
+ * @author Darshan
+ *
+ */
 public class NoCombiner {
 	
 	public static void main(String args[]) throws Exception{
@@ -26,6 +32,7 @@ public class NoCombiner {
             System.err.println("Usage: hadoop jar This.jar <in> [<in>...] <out>");
             System.exit(2);
         }
+        conf.set("mapred.textoutputformat.separator", ",");
         
 		Job job = new Job();
 		job.setJarByClass(NoCombiner.class);
@@ -56,14 +63,17 @@ class TokenizerMapper extends Mapper<Object, Text, Text, Text>{
 		String type = parts[2].trim();
 		String tempValue = parts[3].trim();
 		
+		// Ignore the missing data 
 		if(!id.equals("") && !type.equals("") && !date.equals("") && !tempValue.equals("")){
 
 			if(type.equals(Constant.TMAX)){
 				stationID.set(id);
+				// Value format is "TMAX\tTMIN"
 				stationTempDate.set(tempValue+"\t"+Constant.NULL);
 				context.write(stationID, stationTempDate);
 			}else if(type.equals(Constant.TMIN)){
 				stationID.set(id);
+				//Value format is "TMAX\tTMIN"
 				stationTempDate.set(Constant.NULL+"\t"+tempValue);
 				context.write(stationID, stationTempDate);
 			}
@@ -74,14 +84,11 @@ class TokenizerMapper extends Mapper<Object, Text, Text, Text>{
 
 class MinMaxTempReducer extends Reducer<Text, Text, Text, Text>{
 
-	private Text resultInfo = new Text();
-	
 	public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException{
 		
-		// Reduce group the data with each station ID
-		// Now Group the data for each year
+		// results = {sum Of TMAX, count of TMAX, sum of TMIN, count of TMIN}
 		Float[] results =  {0.0f, 0.0f, 0.0f, 0.0f};
-		
+		Text resultInfo = new Text();
 		for(Text value : values){
 			
 			String data = value.toString();
@@ -103,7 +110,7 @@ class MinMaxTempReducer extends Reducer<Text, Text, Text, Text>{
 		float tmax= results[0]/results[1];
 		float tmin = results[2]/results[3];
 		
-		resultInfo = new Text(tmax+" "+tmin);
+		resultInfo = new Text(tmax+","+tmin);
 		context.write(key, resultInfo);
 	}
 }
