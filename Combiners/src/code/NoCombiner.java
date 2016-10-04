@@ -14,10 +14,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
 public class NoCombiner {
 	
 	public static void main(String args[]) throws Exception{
@@ -61,15 +57,14 @@ class TokenizerMapper extends Mapper<Object, Text, Text, Text>{
 		String tempValue = parts[3].trim();
 		
 		if(!id.equals("") && !type.equals("") && !date.equals("") && !tempValue.equals("")){
-			
-			String year = date.substring(0,4);
+
 			if(type.equals(Constant.TMAX)){
 				stationID.set(id);
-				stationTempDate.set(year+"\t"+tempValue+" "+Constant.NULL);
+				stationTempDate.set(tempValue+"\t"+Constant.NULL);
 				context.write(stationID, stationTempDate);
 			}else if(type.equals(Constant.TMIN)){
 				stationID.set(id);
-				stationTempDate.set(year+"\t"+Constant.NULL+" "+tempValue);
+				stationTempDate.set(Constant.NULL+"\t"+tempValue);
 				context.write(stationID, stationTempDate);
 			}
 			
@@ -85,45 +80,30 @@ class MinMaxTempReducer extends Reducer<Text, Text, Text, Text>{
 		
 		// Reduce group the data with each station ID
 		// Now Group the data for each year
-		HashMap<String, Float[]> yearHashMap = new HashMap<String, Float[]>(); 
+		Float[] results =  {0.0f, 0.0f, 0.0f, 0.0f};
 		
 		for(Text value : values){
 			
 			String data = value.toString();
 			String parts[] = data.split("\t");
-			String year = parts[0];
+			String tmaxValue = parts[0];
+			String tminValue = parts[1];
 			
-			if(!yearHashMap.containsKey(year)){
-				Float[] array = {0.0f, 0.0f, 0.0f, 0.0f};
-				yearHashMap.put(year, array);
+			if(tmaxValue.equals(Constant.NULL)){
+				Float tempValue = Float.parseFloat(tminValue);
+				results[2] += tempValue;
+				results[3] += 1;
+			}else if(tminValue.equals(Constant.NULL)){
+				Float tempValue = Float.parseFloat(tmaxValue);
+				results[0] += tempValue;
+				results[1] += 1;
 			}
-			
-			String tempValues[] = parts[1].split(" ");
-			if(tempValues[0].equals(Constant.NULL)){
-				Float tempValue = Float.parseFloat(tempValues[1]);
-				yearHashMap.get(year)[2] += tempValue;
-				yearHashMap.get(year)[3] += 1;
-			}else if(tempValues[1].equals(Constant.NULL)){
-				Float tempValue = Float.parseFloat(tempValues[0]);
-				yearHashMap.get(year)[0] += tempValue;
-				yearHashMap.get(year)[1] += 1;
-			}
-			
 		}
 		
-		Iterator<Map.Entry<String, Float[]>> iterator = yearHashMap.entrySet().iterator();
+		float tmax= results[0]/results[1];
+		float tmin = results[2]/results[3];
 		
-		while(iterator.hasNext()){
-			
-			Map.Entry<String, Float[]> pair = iterator.next();
-			
-			Float[] results = pair.getValue();
-			
-			float tmax= results[0]/results[1];
-			float tmin = results[2]/results[3];
-			
-			resultInfo = new Text(pair.getKey()+" "+tmax+ " "+tmin);
-			context.write(key, resultInfo);
-		}
+		resultInfo = new Text(tmax+" "+tmin);
+		context.write(key, resultInfo);
 	}
 }
