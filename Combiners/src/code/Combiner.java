@@ -2,27 +2,21 @@ package code;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-/**
- * NoCombiner class calls a map reduce job without combiner 
- * @author Darshan
- *
- */
-public class NoCombiner {
+public class Combiner {
 	
 	public static void main(String args[]) throws Exception{
-		
 		
 		Configuration conf = new Configuration();
 		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
@@ -33,8 +27,10 @@ public class NoCombiner {
         conf.set("mapred.textoutputformat.separator", Constant.SEP);
         
 		Job job = new Job(conf);
-		job.setJarByClass(NoCombiner.class);
+		job.setJarByClass(Combiner.class);
+		
 		job.setMapperClass(TokenizerMapper.class);
+		job.setCombinerClass(MinMaxTempCombiner.class);
 		job.setReducerClass(MinMaxTempReducer.class);
 		
 		job.setOutputKeyClass(Text.class);
@@ -45,49 +41,18 @@ public class NoCombiner {
         }
 		FileOutputFormat.setOutputPath(job,
                 new Path(otherArgs[otherArgs.length - 1]));
-		job.waitForCompletion(true);
+		System.exit(job.waitForCompletion(true) ? 0 : 1);
+		
 	}
 
 }
 
-class TokenizerMapper extends Mapper<Object, Text, Text, Text>{
-	
-	private Text stationID = new Text();
-	private Text stationTemp = new Text();
-	
-	public void map(Object key, Text value, Context context) throws IOException, InterruptedException{
-		
-		String parts[] = value.toString().split(",");
-		String id = parts[0].trim();
-		String date = parts[1].trim();
-		String type = parts[2].trim();
-		String tempValue = parts[3].trim();
-		
-		// Ignore the missing data 
-		if(!id.equals("") && !type.equals("") && !date.equals("") && !tempValue.equals("")){
-
-			if(type.equals(Constant.TMAX)){
-				stationID.set(id);
-				// Value format is "TMAX,TMIN"
-				stationTemp.set(tempValue+Constant.SEP+"1"+Constant.SEP+"0"+Constant.SEP+"0");
-				context.write(stationID, stationTemp);
-			}else if(type.equals(Constant.TMIN)){
-				stationID.set(id);
-				//Value format is "TMAX\tTMIN"
-				stationTemp.set("0"+Constant.SEP+"0"+Constant.SEP+tempValue+Constant.SEP+"1");
-				context.write(stationID, stationTemp);
-			}
-			
-		}
-	}
-}
-
-class MinMaxTempReducer extends Reducer<Text, Text, Text, Text>{
+class MinMaxTempCombiner extends Reducer<Text, Text, Text, Text>{
 
 	private Text resultInfo = new Text();
 	
 	public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException{
-		
+	
 		float sumTMAX = 0.0f;
 		int countTMAX = 0;
 		float sumTMIN = 0.0f;
@@ -107,19 +72,8 @@ class MinMaxTempReducer extends Reducer<Text, Text, Text, Text>{
 			sumTMIN += tmin;
 			countTMIN += tminC;
 		}
-			
-		if(countTMAX == 0){
-			float tmin = sumTMIN/countTMIN;
-			resultInfo = new Text(Constant.NULL+Constant.SEP+tmin);
-		}else if(countTMIN == 0){
-			float tmax = sumTMAX/countTMAX;
-			resultInfo = new Text(tmax+Constant.SEP+Constant.NULL);
-		}else{
-			float tmin = sumTMIN/countTMIN;
-			float tmax = sumTMAX/countTMAX;
-			resultInfo = new Text(tmax+Constant.SEP+tmin);
-		}
+		resultInfo.set(sumTMAX+Constant.SEP+countTMAX+Constant.SEP+sumTMIN+Constant.SEP+countTMIN);
 		context.write(key, resultInfo);
-		
 	}
 }
+		
