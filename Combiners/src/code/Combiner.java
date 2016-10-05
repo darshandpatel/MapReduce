@@ -72,6 +72,7 @@ class MinMaxTempCombiner extends Reducer<Text, Text, Text, Text>{
 			sumTMIN += tmin;
 			countTMIN += tminC;
 		}
+		
 		resultInfo.set(sumTMAX+Constant.SEP+countTMAX+Constant.SEP+sumTMIN+Constant.SEP+countTMIN);
 		context.write(key, resultInfo);
 	}
