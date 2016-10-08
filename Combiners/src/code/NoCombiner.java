@@ -30,6 +30,7 @@ public class NoCombiner {
             System.err.println("Usage: hadoop jar This.jar <in> [<in>...] <out>");
             System.exit(2);
         }
+        // To have comma separator between reducer produced key and value in output file 
         conf.set("mapred.textoutputformat.separator", Constant.SEP);
         
 		Job job = new Job(conf);
@@ -50,74 +51,73 @@ public class NoCombiner {
 
 }
 
-class TokenizerMapper extends Mapper<Object, Text, Text, Text>{
+/** 
+ * @author Darshan
+ *
+ */
+class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
 	
 	private Text stationID = new Text();
-	private Text stationTemp = new Text();
+	private TempStatus tempStatus = new TempStatus();
 	
 	public void map(Object key, Text value, Context context) throws IOException, InterruptedException{
 		
-		String parts[] = value.toString().split(",");
+		String parts[] = value.toString().split(Constant.SEP);
 		String id = parts[0].trim();
-		String date = parts[1].trim();
 		String type = parts[2].trim();
 		String tempValue = parts[3].trim();
 		
 		// Ignore the missing data 
-		if(!id.equals("") && !type.equals("") && !date.equals("") && !tempValue.equals("")){
+		if(!id.equals("") && !type.equals("") && !tempValue.equals("")){
 
 			if(type.equals(Constant.TMAX)){
 				stationID.set(id);
-				// Value format is "TMAX,TMIN"
-				stationTemp.set(tempValue+Constant.SEP+"1"+Constant.SEP+"0"+Constant.SEP+"0");
-				context.write(stationID, stationTemp);
+				tempStatus.setTmax(Integer.parseInt(tempValue));
+				tempStatus.setIsTmax(true);
+				context.write(stationID, tempStatus);
 			}else if(type.equals(Constant.TMIN)){
 				stationID.set(id);
-				//Value format is "TMAX\tTMIN"
-				stationTemp.set("0"+Constant.SEP+"0"+Constant.SEP+tempValue+Constant.SEP+"1");
-				context.write(stationID, stationTemp);
+				tempStatus.setTmin(Integer.parseInt(tempValue));
+				tempStatus.setIsTmax(false);
+				context.write(stationID, tempStatus);
 			}
 			
 		}
 	}
 }
 
-class MinMaxTempReducer extends Reducer<Text, Text, Text, Text>{
+class MinMaxTempReducer extends Reducer<Text, TempStatus, Text, Text>{
 
 	private Text resultInfo = new Text();
 	
-	public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException{
+	public void reduce(Text key, Iterable<TempStatus> values, Context context) throws IOException, InterruptedException{
 		
 		float sumTMAX = 0.0f;
 		int countTMAX = 0;
 		float sumTMIN = 0.0f;
 		int countTMIN = 0;
 		
-		for(Text value : values){
+		for(TempStatus value : values){
 			
-			String data = value.toString();
-			String parts[] = data.split(Constant.SEP);
-			Float tmax = Float.parseFloat(parts[0]);
-			Float tmaxC = Float.parseFloat(parts[1]);
-			Float tmin = Float.parseFloat(parts[2]);
-			Float tminC = Float.parseFloat(parts[3]);
-			
-			sumTMAX += tmax;
-			countTMAX+= tmaxC;
-			sumTMIN += tmin;
-			countTMIN += tminC;
+			if(value.GetIsTmax()){
+				sumTMAX += value.getTmax(); 
+				countTMAX++;
+			}else{
+				sumTMIN += value.getTmin();
+				countTMIN++;
+			}
 		}
 			
 		if(countTMAX == 0){
 			float tmin = sumTMIN/countTMIN;
-			resultInfo = new Text(Constant.NULL+Constant.SEP+tmin);
+			resultInfo.set(Constant.SEP+tmin);
 		}else if(countTMIN == 0){
 			float tmax = sumTMAX/countTMAX;
-			resultInfo = new Text(tmax+Constant.SEP+Constant.NULL);
+			resultInfo.set(tmax+Constant.SEP);
 		}else{
 			float tmin = sumTMIN/countTMIN;
 			float tmax = sumTMAX/countTMAX;
-			resultInfo = new Text(tmax+Constant.SEP+tmin);
+			resultInfo.set(tmax+Constant.SEP+tmin);
 		}
 		context.write(key, resultInfo);
 		
