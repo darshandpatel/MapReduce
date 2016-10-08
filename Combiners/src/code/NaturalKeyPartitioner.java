@@ -7,7 +7,7 @@ public class NaturalKeyPartitioner extends Partitioner<CompositeKey, TempStatus>
 	@Override
 	public int getPartition(CompositeKey ck, TempStatus ts, int nr) {
 		// TODO Auto-generated method stub
-		int value = ck.getStationId().hashCode();
+		int value = ck.getStationId().hashCode() & Integer.MAX_VALUE;
 		return value % nr;
 	}
 

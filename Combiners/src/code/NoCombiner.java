@@ -13,6 +13,8 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.mortbay.log.Log;
 
 /**
  * NoCombiner class calls a map reduce job without combiner 
@@ -23,21 +25,23 @@ public class NoCombiner {
 	
 	public static void main(String args[]) throws Exception{
 		
-		
 		Configuration conf = new Configuration();
 		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
         if (otherArgs.length < 2) {
             System.err.println("Usage: hadoop jar This.jar <in> [<in>...] <out>");
             System.exit(2);
         }
-        // To have comma separator between reducer produced key and value in output file 
+        // Configure to have comma separator between reducer produced key and value in output file 
         conf.set("mapred.textoutputformat.separator", Constant.SEP);
         
 		Job job = new Job(conf);
 		job.setJarByClass(NoCombiner.class);
-		job.setMapperClass(TokenizerMapper.class);
-		job.setReducerClass(MinMaxTempReducer.class);
 		
+		job.setMapperClass(TokenizerMapper.class);
+		job.setMapOutputKeyClass(Text.class);
+		job.setMapOutputValueClass(TempStatus.class);
+		
+		job.setReducerClass(MinMaxTempReducer.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
 		
@@ -52,6 +56,7 @@ public class NoCombiner {
 }
 
 /** 
+ * Mapper class
  * @author Darshan
  *
  */
@@ -62,30 +67,37 @@ class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
 	
 	public void map(Object key, Text value, Context context) throws IOException, InterruptedException{
 		
+		// Parse input data
 		String parts[] = value.toString().split(Constant.SEP);
 		String id = parts[0].trim();
 		String type = parts[2].trim();
 		String tempValue = parts[3].trim();
 		
-		// Ignore the missing data 
+		// Ignore the missing data
 		if(!id.equals("") && !type.equals("") && !tempValue.equals("")){
-
+			
 			if(type.equals(Constant.TMAX)){
 				stationID.set(id);
-				tempStatus.setTmax(Integer.parseInt(tempValue));
-				tempStatus.setIsTmax(true);
+				tempStatus.setTmax(Float.parseFloat(tempValue));
+				tempStatus.setTmaxCount(1);
+				tempStatus.setTminCount(0);
 				context.write(stationID, tempStatus);
 			}else if(type.equals(Constant.TMIN)){
 				stationID.set(id);
-				tempStatus.setTmin(Integer.parseInt(tempValue));
-				tempStatus.setIsTmax(false);
+				tempStatus.setTmin(Float.parseFloat(tempValue));
+				tempStatus.setTminCount(1);
+				tempStatus.setTmaxCount(0);
 				context.write(stationID, tempStatus);
 			}
-			
 		}
 	}
 }
 
+/**
+ * Reducer class
+ * @author Darshan
+ *
+ */
 class MinMaxTempReducer extends Reducer<Text, TempStatus, Text, Text>{
 
 	private Text resultInfo = new Text();
@@ -97,21 +109,24 @@ class MinMaxTempReducer extends Reducer<Text, TempStatus, Text, Text>{
 		float sumTMIN = 0.0f;
 		int countTMIN = 0;
 		
+		// Iterate over all collected temperature data
 		for(TempStatus value : values){
 			
-			if(value.GetIsTmax()){
+			if(value.getTmaxCount() >= 1){
 				sumTMAX += value.getTmax(); 
-				countTMAX++;
-			}else{
+				countTMAX += value.getTmaxCount();
+			}
+			if(value.getTminCount() >= 1){
 				sumTMIN += value.getTmin();
-				countTMIN++;
+				countTMIN += value.getTminCount();
 			}
 		}
-			
-		if(countTMAX == 0){
+		
+		// Calculate Average Temperature
+		if(countTMAX == 0 && countTMIN != 0){
 			float tmin = sumTMIN/countTMIN;
 			resultInfo.set(Constant.SEP+tmin);
-		}else if(countTMIN == 0){
+		}else if(countTMIN == 0 && countTMAX != 0){
 			float tmax = sumTMAX/countTMAX;
 			resultInfo.set(tmax+Constant.SEP);
 		}else{
@@ -120,6 +135,5 @@ class MinMaxTempReducer extends Reducer<Text, TempStatus, Text, Text>{
 			resultInfo.set(tmax+Constant.SEP+tmin);
 		}
 		context.write(key, resultInfo);
-		
 	}
 }

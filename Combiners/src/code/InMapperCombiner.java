@@ -31,6 +31,8 @@ public class InMapperCombiner {
 		job.setJarByClass(Combiner.class);
 		
 		job.setMapperClass(MapperWithCombiner.class);
+		job.setMapOutputKeyClass(Text.class);
+		job.setMapOutputValueClass(TempStatus.class);
 		job.setReducerClass(MinMaxTempReducer.class);
 		
 		job.setOutputKeyClass(Text.class);
@@ -46,14 +48,13 @@ public class InMapperCombiner {
 
 }
 
-class MapperWithCombiner extends Mapper<Object, Text, Text, Text>{
+class MapperWithCombiner extends Mapper<Object, Text, Text, TempStatus>{
 	
 	private Text stationID = new Text();
-	private Text stationTemp = new Text();
-	private HashMap<String, Info> summary;
+	private HashMap<String, TempStatus> summary;
 	
 	protected void setup(Context context) throws IOException, InterruptedException{
-		summary = new HashMap<String, Info>();
+		summary = new HashMap<String, TempStatus>();
 	}
 	
 	public void map(Object key, Text value, Context context) throws IOException, InterruptedException{
@@ -74,11 +75,11 @@ class MapperWithCombiner extends Mapper<Object, Text, Text, Text>{
 				}
 			}else{
 				if(type.equals(Constant.TMAX)){
-					Info info = new Info(0, 0, Float.parseFloat(tempValue), 1);
-					summary.put(id, info);
+					TempStatus tempStatus = new TempStatus(0, 0, Float.parseFloat(tempValue), 1);
+					summary.put(id, tempStatus);
 				}else if(type.equals(Constant.TMIN)){
-					Info info = new Info(Float.parseFloat(tempValue), 1, 0, 0);
-					summary.put(id, info);
+					TempStatus tempStatus = new TempStatus(Float.parseFloat(tempValue), 1, 0, 0);
+					summary.put(id, tempStatus);
 				}
 			}
 			
@@ -87,17 +88,12 @@ class MapperWithCombiner extends Mapper<Object, Text, Text, Text>{
 	
 	protected void cleanup(Context context) throws IOException, InterruptedException{
 		
-		Iterator<Map.Entry<String, Info>> iterator = summary.entrySet().iterator();
+		Iterator<Map.Entry<String, TempStatus>> iterator = summary.entrySet().iterator();
 		
 		while(iterator.hasNext()){
-			
-			Map.Entry<String, Info> pair = iterator.next();
+			Map.Entry<String, TempStatus> pair = iterator.next();
 			stationID.set(pair.getKey());
-			Info info = pair.getValue();
-			stationTemp.set(info.getTmaxSum()+Constant.SEP+info.getTmaxCount()+
-					Constant.SEP+info.getTminSum()+Constant.SEP+info.getTminCount());
-			context.write(stationID, stationTemp);
-			
+			context.write(stationID, pair.getValue());
 		}
 	}
 }
