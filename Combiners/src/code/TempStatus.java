@@ -8,14 +8,20 @@ import org.apache.hadoop.io.Writable;
 
 public class TempStatus implements Writable{
 
-	int year;
-	float tmax;
-	float tmin;
 	int tmaxCount;
 	int tminCount;
+	float tmax;
+	float tmin;
+	int year;
 	boolean isTmax;
 	
 	public TempStatus(){
+		this.tmaxCount = 0;
+		this.tmax = 0;
+		this.tminCount = 0;
+		this.tmin = 0;
+		this.year = 0;
+		this.isTmax = false;
 	}
 	
 	public TempStatus(float tmax, int tmaxCount, float tmin, int tminCount){
@@ -25,36 +31,26 @@ public class TempStatus implements Writable{
 		this.tminCount = tminCount;
 	}
 	
-	public int getYear() {
-		return year;
+	@Override
+	public void write(DataOutput out) throws IOException {
+		// TODO Auto-generated method stub
+		out.writeFloat(tmax);
+		out.writeFloat(tmin);
+		out.writeInt(tmaxCount);
+		out.writeInt(tminCount);
+		out.writeInt(year);
+		out.writeBoolean(isTmax);
 	}
 
-	public void setYear(int year) {
-		this.year = year;
-	}
-
-	public float getTmax() {
-		return tmax;
-	}
-
-	public void setTmax(float tmax) {
-		this.tmax = tmax;
-	}
-
-	public float getTmin() {
-		return tmin;
-	}
-
-	public void setTmin(float tmin) {
-		this.tmin = tmin;
-	}
-
-	public boolean GetIsTmax() {
-		return isTmax;
-	}
-
-	public void setIsTmax(boolean isTmax) {
-		this.isTmax = isTmax;
+	@Override
+	public void readFields(DataInput in) throws IOException {
+		// TODO Auto-generated method stub
+		this.tmax = in.readFloat();
+		this.tmin = in.readFloat();
+		this.tmaxCount = in.readInt();
+		this.tminCount = in.readInt();
+		this.year = in.readInt();
+		this.isTmax = in.readBoolean();
 	}
 
 	public int getTmaxCount() {
@@ -73,42 +69,36 @@ public class TempStatus implements Writable{
 		this.tminCount = tminCount;
 	}
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		// TODO Auto-generated method stub
-		out.writeFloat(tmax);
-		out.writeFloat(tmin);
-		out.writeInt(tminCount);
-		out.writeInt(tmaxCount);
-		out.writeBoolean(isTmax);
-		out.writeInt(year);
+	public float getTmax() {
+		return tmax;
 	}
 
-	@Override
-	public void readFields(DataInput in) throws IOException {
-		// TODO Auto-generated method stub
-		this.tmax = in.readFloat();
-		this.tmin = in.readFloat();
-		this.tmaxCount = in.readInt();
-		this.tminCount = in.readInt();
-		this.isTmax = in.readBoolean();
-		this.year = in.readInt();
+	public void setTmax(float tmax) {
+		this.tmax = tmax;
 	}
-	
-	public static TempStatus read(DataInput in) throws IOException {
-		TempStatus tempStatus = new TempStatus();
-		tempStatus.readFields(in);
-        return tempStatus;
-      }
-	
-	public void addTmax(float tmax){
-		this.tmax += tmax;
-		this.tmaxCount += 1;
+
+	public float getTmin() {
+		return tmin;
 	}
-	
-	public void addTmin(float tmin){
-		this.tmin += tmin;
-		this.tminCount += 1;
+
+	public void setTmin(float tmin) {
+		this.tmin = tmin;
+	}
+
+	public int getYear() {
+		return year;
+	}
+
+	public void setYear(int year) {
+		this.year = year;
+	}
+
+	public boolean isTmax() {
+		return isTmax;
+	}
+
+	public void setTmax(boolean isTmax) {
+		this.isTmax = isTmax;
 	}
 	
 }

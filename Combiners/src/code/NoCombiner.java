@@ -3,6 +3,9 @@ package code;
 import java.io.IOException;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -45,7 +48,7 @@ public class NoCombiner {
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
 		
-		for (int i = 0; i < otherArgs.length - 1; ++i) {
+		for (int i = 0; i < otherArgs.length - 1; i++) {
             FileInputFormat.addInputPath(job, new Path(otherArgs[i]));
         }
 		FileOutputFormat.setOutputPath(job,
@@ -61,6 +64,7 @@ public class NoCombiner {
  *
  */
 class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
+//class TokenizerMapper extends Mapper<Object, Text, Text, Text>{
 	
 	private Text stationID = new Text();
 	private TempStatus tempStatus = new TempStatus();
@@ -78,15 +82,21 @@ class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
 			
 			if(type.equals(Constant.TMAX)){
 				stationID.set(id);
+				
+				tempStatus.setTmin(0);
 				tempStatus.setTmax(Float.parseFloat(tempValue));
-				tempStatus.setTmaxCount(1);
 				tempStatus.setTminCount(0);
+				tempStatus.setTmaxCount(1);
+				
 				context.write(stationID, tempStatus);
 			}else if(type.equals(Constant.TMIN)){
 				stationID.set(id);
+				
 				tempStatus.setTmin(Float.parseFloat(tempValue));
+				tempStatus.setTmax(0);
 				tempStatus.setTminCount(1);
 				tempStatus.setTmaxCount(0);
+				
 				context.write(stationID, tempStatus);
 			}
 		}
@@ -99,15 +109,16 @@ class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
  *
  */
 class MinMaxTempReducer extends Reducer<Text, TempStatus, Text, Text>{
+//class MinMaxTempReducer extends Reducer<Text, Text, Text, Text>{
 
 	private Text resultInfo = new Text();
 	
 	public void reduce(Text key, Iterable<TempStatus> values, Context context) throws IOException, InterruptedException{
 		
 		float sumTMAX = 0.0f;
-		int countTMAX = 0;
+		long countTMAX = 0l;
 		float sumTMIN = 0.0f;
-		int countTMIN = 0;
+		long countTMIN = 0l;
 		
 		// Iterate over all collected temperature data
 		for(TempStatus value : values){
@@ -122,18 +133,7 @@ class MinMaxTempReducer extends Reducer<Text, TempStatus, Text, Text>{
 			}
 		}
 		
-		// Calculate Average Temperature
-		if(countTMAX == 0 && countTMIN != 0){
-			float tmin = sumTMIN/countTMIN;
-			resultInfo.set(Constant.SEP+tmin);
-		}else if(countTMIN == 0 && countTMAX != 0){
-			float tmax = sumTMAX/countTMAX;
-			resultInfo.set(tmax+Constant.SEP);
-		}else{
-			float tmin = sumTMIN/countTMIN;
-			float tmax = sumTMAX/countTMAX;
-			resultInfo.set(tmax+Constant.SEP+tmin);
-		}
+		resultInfo.set(sumTMAX/countTMAX+Constant.SEP+sumTMIN/countTMIN);
 		context.write(key, resultInfo);
 	}
 }
