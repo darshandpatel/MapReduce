@@ -36,7 +36,8 @@ public class SecondarySort {
 		
 		job.setGroupingComparatorClass(NaturalKeyGroupingComparator.class);
 		
-		job.setReducerClass(MinMaxTempReducer.class);
+		//job.setNumReduceTasks(5);
+		job.setReducerClass(SecondarySortReducer.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
 		
@@ -46,7 +47,6 @@ public class SecondarySort {
 		FileOutputFormat.setOutputPath(job,
                 new Path(otherArgs[otherArgs.length - 1]));
 		System.exit(job.waitForCompletion(true) ? 0 : 1);
-		
 		
 	}
 
@@ -99,6 +99,9 @@ class SecondarySortMapper extends Mapper<Object, Text, CompositeKey, TempStatus>
 
 class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>{
 	
+	private Text stationId = new Text();
+	private Text resultStr = new Text();
+	
 	public void reduce(CompositeKey key, Iterable<TempStatus> values, 
 			Context context) throws IOException, InterruptedException{
 		
@@ -110,28 +113,38 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 		int tmaxCount = 0;
 		float tminSum = 0;
 		int tminCount = 0;
+		boolean firstTime = true;
 		
 		for(TempStatus tempStatus : values){
+			
+			if(firstTime){
+				previousYear = tempStatus.getYear();
+				firstTime = false;
+			}
 			
 			if(tempStatus.getYear() != previousYear){
 				
 				if(previousYear != Constant.RANDOM_NUM){
 					
 					if(tminCount != 0 && tmaxCount != 0){
-						result.append("("+tempStatus.getYear()+","+(tminSum/tminCount)+","+(tmaxSum/tmaxCount)+")");
+						result.append("("+previousYear+","+(tminSum/tminCount)+","+(tmaxSum/tmaxCount)+")");
 					}else if(tminCount != 0){
-						result.append("("+tempStatus.getYear()+","+(tminSum/tminCount)+",)");
+						result.append("("+previousYear+","+(tminSum/tminCount)+",)");
 					}else if(tmaxCount != 0){
-						result.append("("+tempStatus.getYear()+",,"+(tmaxSum/tmaxCount)+")");
+						result.append("("+previousYear+",,"+(tmaxSum/tmaxCount)+")");
 					}
 					
-					tmaxSum = 0;
-					tmaxCount = 0;
-					tminSum = 0;
-					tminCount = 0;
+					previousYear = tempStatus.getYear();
+					tmaxSum = tempStatus.getTmax();
+					tminSum = tempStatus.getTmin();
+					if(tempStatus.isTmax()){
+						tminCount = 0;
+						tmaxCount = 1;
+					}else{
+						tminCount = 1;
+						tmaxCount = 0;
+					}
 				}
-				previousYear = tempStatus.getYear();
-				
 			}else{
 				if(tempStatus.isTmax()){
 					tmaxSum += tempStatus.getTmax();
@@ -151,6 +164,9 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 		}else if(tmaxCount != 0){
 			result.append("("+previousYear+",,"+(tmaxSum/tmaxCount)+")]");
 		}
+		stationId.set(key.getStationId());
+		resultStr.set(result.toString());
+		context.write(stationId, resultStr);
 	}
 	
 }

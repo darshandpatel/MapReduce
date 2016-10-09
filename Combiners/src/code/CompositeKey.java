@@ -50,7 +50,7 @@ public class CompositeKey implements Writable, WritableComparable<CompositeKey>{
 	@Override
 	public void write(DataOutput out) throws IOException {
 		// TODO Auto-generated method stub
-		out.writeInt(year);
 		out.writeUTF(stationId);
+		out.writeInt(year);
 	}
 }
