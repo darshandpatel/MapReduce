@@ -4,6 +4,9 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -28,13 +31,13 @@ public class InMapperCombiner {
         conf.set("mapred.textoutputformat.separator", Constant.SEP);
         
 		Job job = new Job(conf);
-		job.setJarByClass(Combiner.class);
+		job.setJarByClass(InMapperCombiner.class);
 		
 		job.setMapperClass(MapperWithCombiner.class);
 		job.setMapOutputKeyClass(Text.class);
 		job.setMapOutputValueClass(TempStatus.class);
-		job.setReducerClass(MinMaxTempReducer.class);
 		
+		job.setReducerClass(MinMaxTempReducer.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
 		
@@ -51,10 +54,11 @@ public class InMapperCombiner {
 class MapperWithCombiner extends Mapper<Object, Text, Text, TempStatus>{
 	
 	private Text stationID = new Text();
-	private HashMap<String, TempStatus> summary;
+	private TempStatus tempStatus = new TempStatus();
+	private HashMap<String, Info> summary;
 	
 	protected void setup(Context context) throws IOException, InterruptedException{
-		summary = new HashMap<String, TempStatus>();
+		summary = new HashMap<String, Info>();
 	}
 	
 	public void map(Object key, Text value, Context context) throws IOException, InterruptedException{
@@ -75,25 +79,30 @@ class MapperWithCombiner extends Mapper<Object, Text, Text, TempStatus>{
 				}
 			}else{
 				if(type.equals(Constant.TMAX)){
-					TempStatus tempStatus = new TempStatus(0, 0, Float.parseFloat(tempValue), 1);
-					summary.put(id, tempStatus);
+					Info info = new Info(0, 0, Float.parseFloat(tempValue), 1);
+					summary.put(id, info);
 				}else if(type.equals(Constant.TMIN)){
-					TempStatus tempStatus = new TempStatus(Float.parseFloat(tempValue), 1, 0, 0);
-					summary.put(id, tempStatus);
+					Info info = new Info(Float.parseFloat(tempValue), 1, 0, 0);
+					summary.put(id, info);
 				}
 			}
-			
 		}
 	}
 	
 	protected void cleanup(Context context) throws IOException, InterruptedException{
 		
-		Iterator<Map.Entry<String, TempStatus>> iterator = summary.entrySet().iterator();
+		Iterator<Map.Entry<String, Info>> iterator = summary.entrySet().iterator();
 		
 		while(iterator.hasNext()){
-			Map.Entry<String, TempStatus> pair = iterator.next();
+			Map.Entry<String, Info> pair = iterator.next();
 			stationID.set(pair.getKey());
-			context.write(stationID, pair.getValue());
+			Info info = pair.getValue();
+			tempStatus.setTmin(info.getTminSum());
+			tempStatus.setTmax(info.getTmaxSum());
+			tempStatus.setTminCount(info.getTminCount());
+			tempStatus.setTmaxCount(info.getTmaxCount());
+			
+			context.write(stationID,tempStatus);
 		}
 	}
 }

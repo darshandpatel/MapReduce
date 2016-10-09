@@ -2,6 +2,7 @@ package code;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -10,6 +11,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -17,7 +19,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
-import org.mortbay.log.Log;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * NoCombiner class calls a map reduce job without combiner 
@@ -68,8 +71,18 @@ class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
 	
 	private Text stationID = new Text();
 	private TempStatus tempStatus = new TempStatus();
+	private static final Log LOG = LogFactory.getLog(TokenizerMapper.class);
+	private int mapCallCount;
+	
+	public void setup(Context context) throws IOException, InterruptedException{
+		
+		LOG.info("Map is called");
+		mapCallCount = 0;
+	}
 	
 	public void map(Object key, Text value, Context context) throws IOException, InterruptedException{
+		
+		mapCallCount++;
 		
 		// Parse input data
 		String parts[] = value.toString().split(Constant.SEP);
@@ -100,6 +113,10 @@ class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
 				context.write(stationID, tempStatus);
 			}
 		}
+	}
+	
+	public void cleanup(Context context) throws IOException, InterruptedException{
+		LOG.info("Number of map call is : "+ mapCallCount);
 	}
 }
 

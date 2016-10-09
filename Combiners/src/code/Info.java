@@ -3,11 +3,11 @@ package code;
 public class Info {
 	
 	private float tminSum;
-	private float tminCount;
+	private int tminCount;
 	private float tmaxSum;
-	private float tmaxCount;
+	private int tmaxCount;
 	
-	Info(float tminSum, float tminCount, float tmaxSum, float tmaxCount){
+	Info(float tminSum, int tminCount, float tmaxSum, int tmaxCount){
 		this.tminSum = tminSum;
 		this.tminCount = tminCount;
 		this.tmaxSum = tmaxSum;
@@ -22,11 +22,11 @@ public class Info {
 		this.tminSum = tminSum;
 	}
 
-	public float getTminCount() {
+	public int getTminCount() {
 		return tminCount;
 	}
 
-	public void setTminCount(float tminCount) {
+	public void setTminCount(int tminCount) {
 		this.tminCount = tminCount;
 	}
 
@@ -38,11 +38,11 @@ public class Info {
 		this.tmaxSum = tmaxSum;
 	}
 
-	public float getTmaxCount() {
+	public int getTmaxCount() {
 		return tmaxCount;
 	}
 
-	public void setTmaxCount(float tmaxCount) {
+	public void setTmaxCount(int tmaxCount) {
 		this.tmaxCount = tmaxCount;
 	}
 	

@@ -4,6 +4,9 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BooleanWritable;
+import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -68,15 +71,23 @@ class SecondarySortMapper extends Mapper<Object, Text, CompositeKey, TempStatus>
 			int year = Integer.parseInt(date.substring(0, 4));
 			compositeKey.setStationId(id);
 			compositeKey.setYear(year);
+			
 			if(type.equals(Constant.TMAX)){
-				tempStatus.setTmax(Integer.parseInt(tempValue));
+				
+				tempStatus.setTmax(Float.parseFloat(tempValue));
+				tempStatus.setTmin(0);
+				tempStatus.setYear(year);
 				tempStatus.setIsTmax(true);
-				tempStatus.setYear(year);
+				
 				context.write(compositeKey, tempStatus);
+				
 			}else if(type.equals(Constant.TMIN)){
-				tempStatus.setTmax(Integer.parseInt(tempValue));
-				tempStatus.setIsTmax(false);
+				
+				tempStatus.setTmin(Float.parseFloat(tempValue));
+				tempStatus.setTmax(0);
 				tempStatus.setYear(year);
+				tempStatus.setIsTmax(false);
+				
 				context.write(compositeKey, tempStatus);
 			}
 		
@@ -122,7 +133,7 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 				previousYear = tempStatus.getYear();
 				
 			}else{
-				if(tempStatus.GetIsTmax()){
+				if(tempStatus.isTmax()){
 					tmaxSum += tempStatus.getTmax();
 					tmaxCount++;
 				}else{

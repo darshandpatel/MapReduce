@@ -97,7 +97,7 @@ public class TempStatus implements Writable{
 		return isTmax;
 	}
 
-	public void setTmax(boolean isTmax) {
+	public void setIsTmax(boolean isTmax) {
 		this.isTmax = isTmax;
 	}
 	
