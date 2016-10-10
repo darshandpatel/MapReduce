@@ -40,6 +40,7 @@ public class NoCombiner {
         // Configure to have comma separator between reducer produced key and value in output file 
         conf.set("mapred.textoutputformat.separator", Constant.SEP);
         
+        // MapReduce Job configuration
 		Job job = new Job(conf);
 		job.setJarByClass(NoCombiner.class);
 		
@@ -51,9 +52,12 @@ public class NoCombiner {
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
 		
+		// MapReduce Job Input 
 		for (int i = 0; i < otherArgs.length - 1; i++) {
             FileInputFormat.addInputPath(job, new Path(otherArgs[i]));
         }
+		
+		// MapReduce Job Output
 		FileOutputFormat.setOutputPath(job,
                 new Path(otherArgs[otherArgs.length - 1]));
 		job.waitForCompletion(true);
@@ -75,14 +79,10 @@ class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
 	private int mapCallCount;
 	
 	public void setup(Context context) throws IOException, InterruptedException{
-		
 		LOG.info("Map is called");
-		mapCallCount = 0;
 	}
 	
 	public void map(Object key, Text value, Context context) throws IOException, InterruptedException{
-		
-		mapCallCount++;
 		
 		// Parse input data
 		String parts[] = value.toString().split(Constant.SEP);
@@ -93,9 +93,11 @@ class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
 		// Ignore the missing data
 		if(!id.equals("") && !type.equals("") && !tempValue.equals("")){
 			
+			// Extract TMIN and TMAX value
 			if(type.equals(Constant.TMAX)){
 				stationID.set(id);
 				
+				// Set TMAX/TMIN value and count in Writable class 
 				tempStatus.setTmin(0);
 				tempStatus.setTmax(Float.parseFloat(tempValue));
 				tempStatus.setTminCount(0);
@@ -105,6 +107,7 @@ class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
 			}else if(type.equals(Constant.TMIN)){
 				stationID.set(id);
 				
+				// Set TMAX/TMIN value and count in Writable class 
 				tempStatus.setTmin(Float.parseFloat(tempValue));
 				tempStatus.setTmax(0);
 				tempStatus.setTminCount(1);
@@ -115,9 +118,6 @@ class TokenizerMapper extends Mapper<Object, Text, Text, TempStatus>{
 		}
 	}
 	
-	public void cleanup(Context context) throws IOException, InterruptedException{
-		LOG.info("Number of map call is : "+ mapCallCount);
-	}
 }
 
 /**
@@ -137,7 +137,7 @@ class MinMaxTempReducer extends Reducer<Text, TempStatus, Text, Text>{
 		float sumTMIN = 0.0f;
 		long countTMIN = 0l;
 		
-		// Iterate over all collected temperature data
+		// Iterate over all collected temperature data and sum the TMIN/TMAX value and count
 		for(TempStatus value : values){
 			
 			if(value.getTmaxCount() >= 1){
@@ -150,7 +150,15 @@ class MinMaxTempReducer extends Reducer<Text, TempStatus, Text, Text>{
 			}
 		}
 		
-		resultInfo.set(sumTMAX/countTMAX+Constant.SEP+sumTMIN/countTMIN);
+		// Calculate TMIN and TMAX average
+		if(countTMAX != 0 && countTMIN != 0){
+			resultInfo.set(sumTMIN/countTMIN+Constant.SEP+sumTMAX/countTMAX);
+		}else if(countTMAX != 0){
+			resultInfo.set(Constant.SEP+sumTMAX/countTMAX);
+		}else if(countTMIN != 0){
+			resultInfo.set(sumTMIN/countTMIN+Constant.SEP);
+		}
+		
 		context.write(key, resultInfo);
 	}
 }

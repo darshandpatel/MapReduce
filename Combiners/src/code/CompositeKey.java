@@ -7,7 +7,12 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-
+/**
+ * This class is composite key class for the secondary sort problem
+ * Here station id and year is included in the composite key
+ * @author Darshan
+ *
+ */
 public class CompositeKey implements Writable, WritableComparable<CompositeKey>{
 	
 	private String stationId;

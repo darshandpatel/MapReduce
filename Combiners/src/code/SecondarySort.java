@@ -34,9 +34,9 @@ public class SecondarySort {
 		job.setMapOutputKeyClass(CompositeKey.class);
 		job.setMapOutputValueClass(TempStatus.class);
 		
+		// Set Grouping Class which group the records which has the same natural key 
 		job.setGroupingComparatorClass(NaturalKeyGroupingComparator.class);
 		
-		//job.setNumReduceTasks(5);
 		job.setReducerClass(SecondarySortReducer.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
@@ -52,6 +52,13 @@ public class SecondarySort {
 
 }
 
+/**
+ * This is mapper class which extract station id and temperature value
+ * from the records and creates a new composite key (station id, year) and sends 
+ * to reducer with temperature info
+ * @author Darshan
+ *
+ */
 class SecondarySortMapper extends Mapper<Object, Text, CompositeKey, TempStatus>{
 	
 	private CompositeKey compositeKey = new CompositeKey();
@@ -69,9 +76,11 @@ class SecondarySortMapper extends Mapper<Object, Text, CompositeKey, TempStatus>
 		if(!id.equals("") && !type.equals("") && !date.equals("") && !tempValue.equals("")){
 
 			int year = Integer.parseInt(date.substring(0, 4));
+			// Set composite key values
 			compositeKey.setStationId(id);
 			compositeKey.setYear(year);
 			
+			// Set year and TMIN/TMAX values
 			if(type.equals(Constant.TMAX)){
 				
 				tempStatus.setTmax(Float.parseFloat(tempValue));
@@ -80,7 +89,6 @@ class SecondarySortMapper extends Mapper<Object, Text, CompositeKey, TempStatus>
 				tempStatus.setIsTmax(true);
 				
 				context.write(compositeKey, tempStatus);
-				
 			}else if(type.equals(Constant.TMIN)){
 				
 				tempStatus.setTmin(Float.parseFloat(tempValue));
@@ -90,13 +98,18 @@ class SecondarySortMapper extends Mapper<Object, Text, CompositeKey, TempStatus>
 				
 				context.write(compositeKey, tempStatus);
 			}
-		
 		}
 	}
-	
 }
 
 
+/**
+ * Each reducer call will reach only data associated with only single station id
+ * due to Grouping comparator and the data would be sorted by years due to
+ * key comparator which is implemented in Composite key class 
+ * @author Darshan
+ *
+ */
 class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>{
 	
 	private Text stationId = new Text();
@@ -105,6 +118,7 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 	public void reduce(CompositeKey key, Iterable<TempStatus> values, 
 			Context context) throws IOException, InterruptedException{
 		
+		// StringBuilder to create a string in the specific way [(year,avgTMAX,avgTMIN),(),..]
 		StringBuilder result = new StringBuilder();
 		result.append("[");
 		
@@ -115,6 +129,11 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 		int tminCount = 0;
 		boolean firstTime = true;
 		
+		// Logic : As the data is sorted by year, we have taken an advantage of
+		// it. previousYear variable is used to keep track of change in the year 
+		
+		// Iterator of TempStatus is sorted by year and they belong to
+		// single station id
 		for(TempStatus tempStatus : values){
 			
 			if(firstTime){
@@ -122,30 +141,32 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 				firstTime = false;
 			}
 			
+			// If current year is different then previousYear then new year data is started.
 			if(tempStatus.getYear() != previousYear){
 				
-				if(previousYear != Constant.RANDOM_NUM){
-					
-					if(tminCount != 0 && tmaxCount != 0){
-						result.append("("+previousYear+","+(tminSum/tminCount)+","+(tmaxSum/tmaxCount)+")");
-					}else if(tminCount != 0){
-						result.append("("+previousYear+","+(tminSum/tminCount)+",)");
-					}else if(tmaxCount != 0){
-						result.append("("+previousYear+",,"+(tmaxSum/tmaxCount)+")");
-					}
-					
-					previousYear = tempStatus.getYear();
-					tmaxSum = tempStatus.getTmax();
-					tminSum = tempStatus.getTmin();
-					if(tempStatus.isTmax()){
-						tminCount = 0;
-						tmaxCount = 1;
-					}else{
-						tminCount = 1;
-						tmaxCount = 0;
-					}
+				// Calculate the average of previous year data
+				if(tminCount != 0 && tmaxCount != 0){
+					result.append("("+previousYear+","+(tminSum/tminCount)+","+(tmaxSum/tmaxCount)+")");
+				}else if(tminCount != 0){
+					result.append("("+previousYear+","+(tminSum/tminCount)+",)");
+				}else if(tmaxCount != 0){
+					result.append("("+previousYear+",,"+(tmaxSum/tmaxCount)+")");
 				}
+				
+				// Update the previous year data and counter
+				previousYear = tempStatus.getYear();
+				tmaxSum = tempStatus.getTmax();
+				tminSum = tempStatus.getTmin();
+				if(tempStatus.isTmax()){
+					tminCount = 0;
+					tmaxCount = 1;
+				}else{
+					tminCount = 1;
+					tmaxCount = 0;
+				}
+				
 			}else{
+				// If previous year is same as current year then update TMIN/TMAX sum and count
 				if(tempStatus.isTmax()){
 					tmaxSum += tempStatus.getTmax();
 					tmaxCount++;
@@ -157,6 +178,7 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 			
 		}
 		
+		// For last year, calculate average TMIN and TMAX
 		if(tminCount != 0 && tmaxCount != 0){
 			result.append("("+previousYear+","+(tminSum/tminCount)+","+(tmaxSum/tmaxCount)+")]");
 		}else if(tminCount != 0){
@@ -164,6 +186,7 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 		}else if(tmaxCount != 0){
 			result.append("("+previousYear+",,"+(tmaxSum/tmaxCount)+")]");
 		}
+		
 		stationId.set(key.getStationId());
 		resultStr.set(result.toString());
 		context.write(stationId, resultStr);

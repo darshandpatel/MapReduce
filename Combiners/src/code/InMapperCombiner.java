@@ -28,6 +28,8 @@ public class InMapperCombiner {
             System.err.println("Usage: hadoop jar This.jar <in> [<in>...] <out>");
             System.exit(2);
         }
+        
+        //Configure to have comma separator between reducer produced key and value in output file
         conf.set("mapred.textoutputformat.separator", Constant.SEP);
         
 		Job job = new Job(conf);
@@ -55,9 +57,11 @@ class MapperWithCombiner extends Mapper<Object, Text, Text, TempStatus>{
 	
 	private Text stationID = new Text();
 	private TempStatus tempStatus = new TempStatus();
+	// HashMap to calculate sum of TMIN/TMAX value in Mapper 
 	private HashMap<String, Info> summary;
 	
 	protected void setup(Context context) throws IOException, InterruptedException{
+		// Initialize HashMap
 		summary = new HashMap<String, Info>();
 	}
 	
@@ -71,6 +75,7 @@ class MapperWithCombiner extends Mapper<Object, Text, Text, TempStatus>{
 		// Ignore the missing data 
 		if(!id.equals("") && !type.equals("") && !tempValue.equals("")){
 			
+			// If station id exists in hashmap then update the TMIN/TMAX sum and count
 			if(summary.containsKey(id)){
 				if(type.equals(Constant.TMAX)){
 					summary.get(id).addTmax(Float.parseFloat(tempValue));
@@ -78,6 +83,8 @@ class MapperWithCombiner extends Mapper<Object, Text, Text, TempStatus>{
 					summary.get(id).addTmin(Float.parseFloat(tempValue));
 				}
 			}else{
+				// If station id doesn't exist in hashmap then create new entry: station id as key 
+				// with TMIN/TMAX value and count as value
 				if(type.equals(Constant.TMAX)){
 					Info info = new Info(0, 0, Float.parseFloat(tempValue), 1);
 					summary.put(id, info);
@@ -93,9 +100,12 @@ class MapperWithCombiner extends Mapper<Object, Text, Text, TempStatus>{
 		
 		Iterator<Map.Entry<String, Info>> iterator = summary.entrySet().iterator();
 		
+		// Iterate over all station id in hashmap
 		while(iterator.hasNext()){
 			Map.Entry<String, Info> pair = iterator.next();
 			stationID.set(pair.getKey());
+			
+			// Set temperature value in writable class
 			Info info = pair.getValue();
 			tempStatus.setTmin(info.getTminSum());
 			tempStatus.setTmax(info.getTmaxSum());

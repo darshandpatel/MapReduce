@@ -2,6 +2,11 @@ package code;
 
 import org.apache.hadoop.mapreduce.Partitioner;
 
+/**
+ * This class assign the reducer to the records based upon Hashcode logic
+ * @author Darshan
+ *
+ */
 public class NaturalKeyPartitioner extends Partitioner<CompositeKey, TempStatus>{
 
 	@Override
