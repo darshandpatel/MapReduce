@@ -18,10 +18,14 @@ combiner: output-clean
 inmapper: output-clean
 	${HADOOP_ROOT}/bin/hadoop jar Combiners.jar code.InMapperCombiner ${INPUT_FILE} output
 
+# Secondary Sort run
 secondarysort:
 	${HADOOP_ROOT}/bin/hadoop jar Combiners.jar code.SecondarySort ${INPUT_FOLDER} output
+
+# Delete output folder
 output-clean:
 	rm -rf output
 
+# Clean the build
 clean:
 	rm -rf output .gradle Combiners.jar target build	

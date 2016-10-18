@@ -137,12 +137,14 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 		for(TempStatus tempStatus : values){
 			
 			if(firstTime){
-				previousYear = tempStatus.getYear();
+				//previousYear = tempStatus.getYear();
+				previousYear = key.getYear();
 				firstTime = false;
 			}
 			
 			// If current year is different then previousYear then new year data is started.
-			if(tempStatus.getYear() != previousYear){
+			//if(tempStatus.getYear() != previousYear){
+			if(key.getYear() != previousYear){
 				
 				// Calculate the average of previous year data
 				if(tminCount != 0 && tmaxCount != 0){
@@ -154,7 +156,8 @@ class SecondarySortReducer extends Reducer<CompositeKey, TempStatus, Text, Text>
 				}
 				
 				// Update the previous year data and counter
-				previousYear = tempStatus.getYear();
+				//previousYear = tempStatus.getYear();
+				previousYear = key.getYear();
 				tmaxSum = tempStatus.getTmax();
 				tminSum = tempStatus.getTmin();
 				if(tempStatus.isTmax()){
