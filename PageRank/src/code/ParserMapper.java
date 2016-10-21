@@ -46,6 +46,7 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 
 	public void map(Object key, Text line, Context context) throws IOException, InterruptedException{
 		
+		Node nullNode = new Node(null);
 		// Configure parser.
 		try {
 			SAXParserFactory spf = SAXParserFactory.newInstance();
@@ -77,7 +78,18 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 				linkPageNames.clear();
 			}
 			returnKey.set(pageName);
-			context.write(returnKey, new Node(linkPageNames));
+			if(linkPageNames.size() == 0){
+				context.write(returnKey, new Node(null));
+			}else{
+				context.write(returnKey, new Node(linkPageNames));
+				
+				for(String linkPage : linkPageNames){
+					returnKey.set(linkPage);
+					context.write(returnKey, new Node(null));
+				}
+			}
+			
+			
 		
 		} catch (SAXNotRecognizedException e1) {
 			// TODO Auto-generated catch block
