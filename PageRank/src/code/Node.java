@@ -12,21 +12,22 @@ import org.apache.hadoop.io.WritableComparable;
 public class Node implements WritableComparable<Node> {
 
 	private double pageRank;
-	private boolean isOnlyPageRank;
+	private double pageRankContribution;
+	private boolean isOnlyPageRankContribution;
 	private List<Text> adjacencyNodes;
 
 	public Node(){
 		this.adjacencyNodes = new LinkedList<Text>();
-		this.isOnlyPageRank = false;
+		this.isOnlyPageRankContribution = false;
 	}
 	
 	public Node(boolean isOnlyPageRank){
 		this.adjacencyNodes = new LinkedList<Text>();
-		this.isOnlyPageRank = isOnlyPageRank;
+		this.isOnlyPageRankContribution = isOnlyPageRank;
 	}
 
 	public Node(List<String> adjacencyNodes){
-		this.isOnlyPageRank = false;
+		this.isOnlyPageRankContribution = false;
 		this.adjacencyNodes = new LinkedList<Text>();
 		for(String value : adjacencyNodes){
 			this.adjacencyNodes.add(new Text(value));
@@ -35,7 +36,8 @@ public class Node implements WritableComparable<Node> {
 
 	public void write(DataOutput out) throws IOException {
 		// TODO Auto-generated method stub
-		out.writeBoolean(isOnlyPageRank);
+		out.writeBoolean(isOnlyPageRankContribution);
+		out.writeDouble(pageRankContribution);
 		out.writeDouble(pageRank);
 		out.writeInt(adjacencyNodes.size());
 		for(Text node : adjacencyNodes){
@@ -45,7 +47,8 @@ public class Node implements WritableComparable<Node> {
 
 	public void readFields(DataInput in) throws IOException {
 		// TODO Auto-generated method stub
-		isOnlyPageRank = in.readBoolean();
+		isOnlyPageRankContribution = in.readBoolean();
+		pageRankContribution = in.readDouble();
 		pageRank = in.readDouble();
 		int length = in.readInt();
 		adjacencyNodes = new LinkedList<Text>();
@@ -67,7 +70,7 @@ public class Node implements WritableComparable<Node> {
 	}
 
 	public double getPageRank() {
-		return pageRank;
+		return this.pageRank;
 	}
 
 	public void setPageRank(double pageRank) {
@@ -90,13 +93,20 @@ public class Node implements WritableComparable<Node> {
 		}
 	}
 
-
-	public boolean isOnlyPageRank() {
-		return isOnlyPageRank;
+	public boolean isOnlyPageRankContribution() {
+		return isOnlyPageRankContribution;
 	}
 
-	public void setIsOnlyPageRank(boolean isOnlyPageRank) {
-		this.isOnlyPageRank = isOnlyPageRank;
+	public void setIsOnlyPageRankContribution(boolean isOnlyPageRankContribution) {
+		this.isOnlyPageRankContribution = isOnlyPageRankContribution;
+	}
+
+	public double getPageRankContribution() {
+		return pageRankContribution;
+	}
+
+	public void setPageRankContribution(double pageRankContribution) {
+		this.pageRankContribution = pageRankContribution;
 	}
 	
 	

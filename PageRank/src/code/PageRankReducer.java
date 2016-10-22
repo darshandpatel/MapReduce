@@ -10,26 +10,25 @@ import org.apache.hadoop.mapreduce.Reducer;
 public class PageRankReducer extends Reducer<Text, Node, Text, Node>{
 
 	int iteration;
-	float alpha;
+	double alpha;
 	long pageCount;
-	long danglingNodeCounter;
-	long danglingNodesPRSum;
-	long constantTerm;
+	double danglingNodesPRSum;
+	double constantTerm;
 	Node nodeWithAdjNodes = new Node();
 	
 	public void setup(Context context){
 		Configuration conf = context.getConfiguration();
-		alpha = conf.getLong(Constant.ALPHA, (long) 0.15);
+		alpha = conf.getDouble(Constant.ALPHA, 0.15);
 		iteration = conf.getInt(Constant.ITERATION, -10);
-		pageCount = conf.getInt(Constant.PAGE_COUNT, -10);
-		//danglingNodeCounter = conf.getInt(Constant.DANGLING_NODE_COUNTER, -10);
-		//danglingNodesPRSum = conf.getInt(Constant.DANGLING_NODES_PR_SUM, -10);
+		pageCount = conf.getLong(Constant.PAGE_COUNT, -10L);
+		danglingNodesPRSum = conf.getDouble(Constant.DANGLING_NODES_PR_SUM, 0);
+		danglingNodesPRSum = danglingNodesPRSum / Math.pow(10, 12);
 		
-		if (iteration == -10 || pageCount == -10 || danglingNodeCounter == -10 || danglingNodesPRSum == -10) {
+		if (iteration == -10 || pageCount == -10) {
 			throw new Error("Didn't propagate on Page Rank Reducer");
 		}
 		
-		constantTerm = (long) ((alpha/pageCount) + (1-alpha)*(danglingNodesPRSum/pageCount));
+		constantTerm = ((alpha/pageCount) + (1-alpha)*(danglingNodesPRSum/pageCount));
 		System.out.println("Constant Term value is : " + constantTerm);
 	}
 	
@@ -37,12 +36,12 @@ public class PageRankReducer extends Reducer<Text, Node, Text, Node>{
 			Context context) throws IOException, InterruptedException {
 		
 		// Calculate New Page Rank
-		long pageRankSum = 0L;
+		double pageRankSum = 0d;
 		boolean deadNode = true;
 		for(Node node : nodes){
 			
-			if(node.isOnlyPageRank()){
-				pageRankSum += node.getPageRank();
+			if(node.isOnlyPageRankContribution()){
+				pageRankSum += node.getPageRankContribution();
 			} else {
 				nodeWithAdjNodes.setAdjacencyNodes(node.getAdjacencyNodes());
 				deadNode = false;
@@ -53,12 +52,12 @@ public class PageRankReducer extends Reducer<Text, Node, Text, Node>{
 			return;
 		}
 		
-		long newPageRank = (long) (constantTerm + (1-alpha)*pageRankSum);
+		double newPageRank = (constantTerm + (1-alpha)*pageRankSum);
 		nodeWithAdjNodes.setPageRank(newPageRank);
 		
 		// Calculate Sum of PR of dangling nodes
 		if(nodeWithAdjNodes.getAdjacencyNodes().size() == 0){
-			context.getCounter(COUNTERS.DANGLING_NODE_PR_SUM).increment(newPageRank);
+			context.getCounter(COUNTERS.DANGLING_NODE_PR_SUM).increment((long)(newPageRank * Math.pow(10, 12)));
 		}
 		
 		context.write(key, nodeWithAdjNodes);

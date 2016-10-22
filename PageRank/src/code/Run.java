@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Counter;
@@ -29,16 +30,14 @@ public class Run {
         Job parsingJob = performParsingJob(otherArgs[0], "parsing", conf);
         
         Counter pageCounter = parsingJob.getCounters().findCounter(COUNTERS.PAGE_COUNTER);
-        
         System.out.println("Page Counter : " + pageCounter.getValue());
-
         conf.setLong(Constant.PAGE_COUNT, pageCounter.getValue());
         //conf.setLong(Constant.DANGLING_NODE_COUNTER, danglingNodeCounter.getValue());
         //conf.setLong(Constant.DANGLING_NODES_PR_SUM, (1/pageCounter.getValue())*danglingNodeCounter.getValue());
         
-        conf.setLong("alpha", (long) 0.15);
+        conf.setDouble("alpha", 0.15);
         int iteration;
-        for(iteration = 0 ; iteration < 1; iteration++){
+        for(iteration = 0 ; iteration < 10; iteration++){
         	conf.setInt("iteration", iteration);
         	String inputPath;
 			inputPath = "data"+(iteration-1);
@@ -53,8 +52,8 @@ public class Run {
         	
         }
         
-        //Run.top100("data"+(iteration-1), otherArgs[1], conf);
-        Run.sampleOutput("data"+(iteration-1), otherArgs[1], conf);
+        Run.top100("data"+(iteration-1), otherArgs[1], conf);
+        //Run.sampleOutput("data"+(iteration-1), otherArgs[1], conf);
 	}
 	
 	public static Job performParsingJob(String inputPath, String outputPath,
@@ -103,13 +102,13 @@ public class Run {
 		
 		Job job = new Job(conf, "Sample Output");
         job.setJarByClass(Run.class);
-        job.setMapperClass(TopMapper.class);
+        job.setMapperClass(SampleMapper.class);
         job.setReducerClass(Reducer.class);
-        //job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
-        job.setMapOutputKeyClass(LongWritable.class);
-        job.setMapOutputValueClass(Text.class);
+        job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(DoubleWritable.class);
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(LongWritable.class);
+        job.setOutputValueClass(DoubleWritable.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         
         FileInputFormat.addInputPath(job, new Path(inputPath));
@@ -128,10 +127,10 @@ public class Run {
         job.setMapperClass(TopMapper.class);
         job.setReducerClass(TopReducer.class);
         //job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
-        job.setMapOutputKeyClass(LongWritable.class);
+        job.setMapOutputKeyClass(DoubleWritable.class);
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(LongWritable.class);
+        job.setOutputValueClass(DoubleWritable.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         
         FileInputFormat.addInputPath(job, new Path(inputPath));

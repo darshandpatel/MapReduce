@@ -74,11 +74,12 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 				linkPageNames.clear();
 			}
 			returnKey.set(pageName);
+			linkPageNames = ParserMapper.removeSourcePage(linkPageNames, pageName);
 			if(linkPageNames.size() == 0){
 				context.write(returnKey, emptyNode);
 			}else{
 				node.setAdjacencyStringNodes(linkPageNames);
-				node.setIsOnlyPageRank(false);
+				node.setIsOnlyPageRankContribution(false);
 				context.write(returnKey, node);
 			}
 			context.getCounter(COUNTERS.PAGE_COUNTER).increment(1);
@@ -87,6 +88,14 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		} 
+	}
+	
+	public static List<String> removeSourcePage(List<String> linkPageNames, String sourcePage){
+		
+		while(linkPageNames.remove(sourcePage)){
+		}
+		
+		return linkPageNames;
 	}
 	
 }

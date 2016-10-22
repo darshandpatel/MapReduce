@@ -10,7 +10,7 @@ public class PageRankMapper extends Mapper<Text, Node, Text, Node> {
 	
 	int iteration;
 	int pageCount;
-	Node pageRankNode = new Node();
+	Node pageRankContributionNode = new Node();
 	
 	public void setup(Context context){
 		Configuration conf = context.getConfiguration();
@@ -25,15 +25,17 @@ public class PageRankMapper extends Mapper<Text, Node, Text, Node> {
 	public void map(Text key, Node value, Context context) throws IOException, InterruptedException{
 		
 		if(iteration == 0){
-			value.setPageRank((1.0/pageCount)); // * Math.pow(10, 12)
+			value.setPageRank(((1d/pageCount))); // * Math.pow(10, 12)
 		}
 		
 		int adjLen = value.getAdjacencyNodes().size();
 		
 		for(Text adjPageName : value.getAdjacencyNodes()){
-			pageRankNode.setIsOnlyPageRank(true);
-			pageRankNode.setPageRank(value.getPageRank()/adjLen);
-			context.write(adjPageName, pageRankNode);
+			pageRankContributionNode.setIsOnlyPageRankContribution(true);
+			pageRankContributionNode.setPageRankContribution(value.getPageRank()/adjLen);
+			//System.out.println("Adjacney node size : "+adjLen + " Current Page Rank : " +value.getPageRank());
+			//System.out.println("Contribution : "+value.getPageRank()/adjLen);
+			context.write(adjPageName, pageRankContributionNode);
 		}
 		
 		context.write(key, value);
