@@ -30,6 +30,8 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 	private XMLReader xmlReader;
 	Text returnKey = new Text();
 	Text returnValue = new Text();
+	Node node = new Node();
+	Node emptyNode = new Node();
 	
 	static {
 		// Keep only html pages not containing tilde (~).
@@ -39,14 +41,8 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 		specialCharPattern = Pattern.compile("[^A-Za-z0-9]");
 	}
 	
-	public void setup(){
-		
-	}
-	
-
 	public void map(Object key, Text line, Context context) throws IOException, InterruptedException{
 		
-		Node nullNode = new Node(null);
 		// Configure parser.
 		try {
 			SAXParserFactory spf = SAXParserFactory.newInstance();
@@ -61,8 +57,7 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 			String pageName = lineStr.substring(0, delimLoc);
 			String html = lineStr.substring(delimLoc + 1);
 			Matcher matcher = namePattern.matcher(pageName);
-			Matcher specialCharMatcher = specialCharPattern.matcher(pageName);
-			
+			//Matcher specialCharMatcher = specialCharPattern.matcher(pageName);
 			
 			//if (!matcher.find() || !specialCharMatcher.find()) {
 			if (!matcher.find()) {
@@ -72,6 +67,7 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 	
 			// Parse page and fill list of linked pages.
 			try {
+				html = html.replace("&", "&amp;");
 				xmlReader.parse(new InputSource(new StringReader(html)));
 			} catch (Exception e) {
 				// Discard ill-formatted pages.
@@ -79,31 +75,18 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 			}
 			returnKey.set(pageName);
 			if(linkPageNames.size() == 0){
-				context.write(returnKey, new Node(null));
+				context.write(returnKey, emptyNode);
 			}else{
-				context.write(returnKey, new Node(linkPageNames));
-				
-				for(String linkPage : linkPageNames){
-					returnKey.set(linkPage);
-					context.write(returnKey, new Node(null));
-				}
+				node.setAdjacencyStringNodes(linkPageNames);
+				node.setIsOnlyPageRank(false);
+				context.write(returnKey, node);
 			}
-			
-			
+			context.getCounter(COUNTERS.PAGE_COUNTER).increment(1);
 		
-		} catch (SAXNotRecognizedException e1) {
+		} catch (Exception e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
-		} catch (SAXNotSupportedException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (ParserConfigurationException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (SAXException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		} 
 	}
 	
 }

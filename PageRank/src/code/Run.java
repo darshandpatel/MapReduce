@@ -8,6 +8,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -25,47 +26,51 @@ public class Run {
             System.exit(2);
         }
         
-        Job parsingJob = performParsingJob(otherArgs, conf);
-        Counter pageCounter = parsingJob.getCounters().findCounter(COUNTERS.PAGE_COUNTER);
-        Counter danglingNodeCounter = parsingJob.getCounters().findCounter(COUNTERS.DANGLING_NODE_COUNTER);
+        Job parsingJob = performParsingJob(otherArgs[0], "parsing", conf);
         
-        conf.setLong(Constant.PAGE_COUNT, pageCounter.getValue());
-        conf.setLong(Constant.DANGLING_NODE_COUNTER, danglingNodeCounter.getValue());
-        conf.setLong(Constant.DANGLING_NODES_PR_SUM, (1/pageCounter.getValue())*danglingNodeCounter.getValue());
+        Counter pageCounter = parsingJob.getCounters().findCounter(COUNTERS.PAGE_COUNTER);
         
         System.out.println("Page Counter : " + pageCounter.getValue());
-        System.out.println("Dangling Node Counter : "+ danglingNodeCounter.getValue());
+
+        conf.setLong(Constant.PAGE_COUNT, pageCounter.getValue());
+        //conf.setLong(Constant.DANGLING_NODE_COUNTER, danglingNodeCounter.getValue());
+        //conf.setLong(Constant.DANGLING_NODES_PR_SUM, (1/pageCounter.getValue())*danglingNodeCounter.getValue());
         
-        conf.setFloat("alpha", (float) 0.15);
-        for(int iteration = 0; iteration < 10; iteration++){
-        	conf.setInt("iteraiton", iteration);
-        	String inputPath = otherArgs[1];
-        	if(iteration != 0){
-        		inputPath = "data"+(iteration-1);
+        conf.setLong("alpha", (long) 0.15);
+        int iteration;
+        for(iteration = 0 ; iteration < 1; iteration++){
+        	conf.setInt("iteration", iteration);
+        	String inputPath;
+			inputPath = "data"+(iteration-1);
+        	if(iteration == 0){
+        		inputPath = "parsing";
         	}
+        	
         	Job pageRankJob = pageRankJob(inputPath, iteration, conf);
+        	
         	Counter danglingNodesPRSum = pageRankJob.getCounters().findCounter(COUNTERS.DANGLING_NODE_PR_SUM);
         	conf.setLong(Constant.DANGLING_NODES_PR_SUM, danglingNodesPRSum.getValue());
+        	
         }
         
-        
-		
+        //Run.top100("data"+(iteration-1), otherArgs[1], conf);
+        Run.sampleOutput("data"+(iteration-1), otherArgs[1], conf);
 	}
 	
-	public static Job performParsingJob(String[] otherArgs, Configuration conf) throws IOException, ClassNotFoundException, InterruptedException{
+	public static Job performParsingJob(String inputPath, String outputPath,
+			Configuration conf) throws IOException, ClassNotFoundException, InterruptedException{
 		
-		Job job = new Job(conf, "Job");
+		Job job = new Job(conf, "Parsing Job");
         job.setJarByClass(Run.class);
         job.setMapperClass(ParserMapper.class);
-        job.setReducerClass(ParserReducer.class);
-        job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(Node.class);
+        //job.setReducerClass(ParserReducer.class);
+        job.setReducerClass(Reducer.class);
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputValueClass(Node.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         
-        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-        FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
+        FileInputFormat.addInputPath(job, new Path(inputPath));
+        FileOutputFormat.setOutputPath(job, new Path(outputPath));
         
         job.waitForCompletion(true);
 		return job;
@@ -93,23 +98,44 @@ public class Run {
 		return job;
 	}
 	
-	public static Job top100(String inputPath, int interation,
+	public static Job sampleOutput(String inputPath, String outputPath,
+			Configuration conf) throws IOException, ClassNotFoundException, InterruptedException{
+		
+		Job job = new Job(conf, "Sample Output");
+        job.setJarByClass(Run.class);
+        job.setMapperClass(TopMapper.class);
+        job.setReducerClass(Reducer.class);
+        //job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
+        job.setMapOutputKeyClass(LongWritable.class);
+        job.setMapOutputValueClass(Text.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(LongWritable.class);
+        job.setInputFormatClass(SequenceFileInputFormat.class);
+        
+        FileInputFormat.addInputPath(job, new Path(inputPath));
+        FileOutputFormat.setOutputPath(job, new Path(outputPath));
+        
+        job.waitForCompletion(true);
+		return job;
+	}
+	
+	
+	public static Job top100(String inputPath, String outputPath,
 			Configuration conf) throws IOException, ClassNotFoundException, InterruptedException{
 		
 		Job job = new Job(conf, "Top 100");
         job.setJarByClass(Run.class);
-        job.setMapperClass(PageRankMapper.class);
-        job.setReducerClass(PageRankReducer.class);
-        job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
-        job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(Node.class);
+        job.setMapperClass(TopMapper.class);
+        job.setReducerClass(TopReducer.class);
+        //job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
+        job.setMapOutputKeyClass(LongWritable.class);
+        job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Node.class);
+        job.setOutputValueClass(LongWritable.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
-        job.setOutputFormatClass(SequenceFileOutputFormat.class);
         
         FileInputFormat.addInputPath(job, new Path(inputPath));
-        FileOutputFormat.setOutputPath(job, new Path("data"+interation));
+        FileOutputFormat.setOutputPath(job, new Path(outputPath));
         
         job.waitForCompletion(true);
 		return job;

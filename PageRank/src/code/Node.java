@@ -11,21 +11,31 @@ import org.apache.hadoop.io.WritableComparable;
 
 public class Node implements WritableComparable<Node> {
 
-	public double pageRank;
-	public List<Text> adjacencyNodes = new LinkedList<Text>();
-	
+	private double pageRank;
+	private boolean isOnlyPageRank;
+	private List<Text> adjacencyNodes;
+
 	public Node(){
-		
+		this.adjacencyNodes = new LinkedList<Text>();
+		this.isOnlyPageRank = false;
 	}
 	
+	public Node(boolean isOnlyPageRank){
+		this.adjacencyNodes = new LinkedList<Text>();
+		this.isOnlyPageRank = isOnlyPageRank;
+	}
+
 	public Node(List<String> adjacencyNodes){
+		this.isOnlyPageRank = false;
+		this.adjacencyNodes = new LinkedList<Text>();
 		for(String value : adjacencyNodes){
 			this.adjacencyNodes.add(new Text(value));
 		}
 	}
-	
+
 	public void write(DataOutput out) throws IOException {
 		// TODO Auto-generated method stub
+		out.writeBoolean(isOnlyPageRank);
 		out.writeDouble(pageRank);
 		out.writeInt(adjacencyNodes.size());
 		for(Text node : adjacencyNodes){
@@ -35,26 +45,26 @@ public class Node implements WritableComparable<Node> {
 
 	public void readFields(DataInput in) throws IOException {
 		// TODO Auto-generated method stub
+		isOnlyPageRank = in.readBoolean();
 		pageRank = in.readDouble();
 		int length = in.readInt();
 		adjacencyNodes = new LinkedList<Text>();
 		for(int i = 0; i < length; i++){
-	        Text text = new Text();
-	        text.readFields(in);
-	        adjacencyNodes.add(text);
-	    }
-		
+			Text text = new Text();
+			text.readFields(in);
+			adjacencyNodes.add(text);
+		}
+
 	}
 
 	public String toString() {
-		return (adjacencyNodes.toString());
+		return (Double.toString(pageRank) + " : "+adjacencyNodes.toString());
 	}
 
 	public int compareTo(Node o) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
-
 
 	public double getPageRank() {
 		return pageRank;
@@ -72,5 +82,22 @@ public class Node implements WritableComparable<Node> {
 		this.adjacencyNodes = adjacencyNodes;
 	}
 
+	public void setAdjacencyStringNodes(List<String> adjacencyNodes) {
+
+		this.adjacencyNodes.clear();
+		for(String adj : adjacencyNodes){
+			this.adjacencyNodes.add(new Text(adj));
+		}
+	}
+
+
+	public boolean isOnlyPageRank() {
+		return isOnlyPageRank;
+	}
+
+	public void setIsOnlyPageRank(boolean isOnlyPageRank) {
+		this.isOnlyPageRank = isOnlyPageRank;
+	}
+	
 	
 }

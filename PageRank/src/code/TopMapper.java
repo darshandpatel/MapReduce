@@ -17,3 +17,15 @@ public class TopMapper extends Mapper<Text, Node, LongWritable, Text>{
 	}
 
 }
+
+
+class SampleMapper extends Mapper<Text, Node, Text, LongWritable>{
+	
+	LongWritable pageRank = new LongWritable();
+	public void map(Text key, Node value, Context context) throws IOException, InterruptedException{
+		
+		pageRank.set((long) value.getPageRank());
+		context.write(key, pageRank);
+	}
+
+}

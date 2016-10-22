@@ -9,7 +9,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 public class ParserReducer extends Reducer<Text, Node, Text, Node> {
 	
 	Text returnText = new Text();
-	Node node = new Node();
+	Node emptyNode = new Node();
 	public void reduce(Text key, Iterable<Node> nodes,  
 			Context context) throws IOException, InterruptedException {
 		
@@ -17,7 +17,7 @@ public class ParserReducer extends Reducer<Text, Node, Text, Node> {
 		boolean isDanglingNode = true;
 		
 		for(Node node : nodes){
-			if(node.getAdjacencyNodes() != null){
+			if(node.getAdjacencyNodes() != null && node.getAdjacencyNodes().size() != 0){
 				isDanglingNode = false;
 				context.write(key, node);
 				break;
@@ -26,8 +26,7 @@ public class ParserReducer extends Reducer<Text, Node, Text, Node> {
 		
 		if(isDanglingNode){
 			context.getCounter(COUNTERS.DANGLING_NODE_COUNTER).increment(1);
-			node.setAdjacencyNodes(null);
-			context.write(key, node);
+			context.write(key, emptyNode);
 		}
 	}
 

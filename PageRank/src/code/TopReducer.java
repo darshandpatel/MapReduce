@@ -18,7 +18,7 @@ public class TopReducer extends Reducer<LongWritable, Text, Text, LongWritable>{
 		
 		if(counter < 100){
 			for(Text page : pages){
-				context.write(page, key);
+				System.out.println(page + key.toString());
 				counter+=1;
 				if(counter > 99){
 					break;
