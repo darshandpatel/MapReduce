@@ -32,10 +32,9 @@ public class Run {
         Counter pageCounter = parsingJob.getCounters().findCounter(COUNTERS.PAGE_COUNTER);
         System.out.println("Page Counter : " + pageCounter.getValue());
         conf.setLong(Constant.PAGE_COUNT, pageCounter.getValue());
-        //conf.setLong(Constant.DANGLING_NODE_COUNTER, danglingNodeCounter.getValue());
-        //conf.setLong(Constant.DANGLING_NODES_PR_SUM, (1/pageCounter.getValue())*danglingNodeCounter.getValue());
 
         conf.setDouble("alpha", 0.15);
+
         int iteration;
         for (iteration = 0; iteration < 10; iteration++) {
             conf.setInt("iteration", iteration);
@@ -62,7 +61,6 @@ public class Run {
         Job job = Job.getInstance(conf, "Parsing Job");
         job.setJarByClass(Run.class);
         job.setMapperClass(ParserMapper.class);
-        //job.setReducerClass(ParserReducer.class);
         job.setReducerClass(Reducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Node.class);
@@ -87,6 +85,7 @@ public class Run {
         job.setMapOutputValueClass(Node.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Node.class);
+
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
@@ -126,7 +125,7 @@ public class Run {
         job.setJarByClass(Run.class);
         job.setMapperClass(TopMapper.class);
         job.setReducerClass(TopReducer.class);
-        //job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
+        job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
         job.setMapOutputKeyClass(DoubleWritable.class);
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
@@ -143,6 +142,5 @@ public class Run {
 
 enum COUNTERS {
     PAGE_COUNTER,
-    DANGLING_NODE_COUNTER,
     DANGLING_NODE_PR_SUM
 }

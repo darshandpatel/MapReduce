@@ -9,6 +9,15 @@ import java.util.List;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
+/**
+ * This class keeps track of Page rank and adjacnecy page list for a source page. Apart from that,
+ * it can be used to keep track of the page rank contribution from the other pages.
+ *
+ * isOnlyPageRankContribution flag decides which functionality this class provides.
+ *
+ * For page rank contribution, isOnlyPageRankContribution flag is true
+ * For Page rank and adjacency list, isOnlyPageRankContribution flag is false
+ */
 public class Node implements WritableComparable<Node> {
 
     private double pageRank;
@@ -21,9 +30,9 @@ public class Node implements WritableComparable<Node> {
         this.isOnlyPageRankContribution = false;
     }
 
-    public Node(boolean isOnlyPageRank) {
+    public Node(boolean isOnlyPageRankContribution) {
         this.adjacencyNodes = new LinkedList<Text>();
-        this.isOnlyPageRankContribution = isOnlyPageRank;
+        this.isOnlyPageRankContribution = isOnlyPageRankContribution;
     }
 
     public Node(List<String> adjacencyNodes) {

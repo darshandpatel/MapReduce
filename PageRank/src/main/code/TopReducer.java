@@ -6,6 +6,9 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
+/**
+ * TopReducer only emit the first 100 records its receives.
+ */
 public class TopReducer extends Reducer<DoubleWritable, Text, Text, DoubleWritable> {
 
     int counter;
