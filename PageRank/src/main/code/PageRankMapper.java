@@ -9,7 +9,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 public class PageRankMapper extends Mapper<Text, Node, Text, Node> {
 
     int iteration;
-    int pageCount;
+    long pageCount;
     Node pageRankContributionNode = new Node();
 
     /**
@@ -21,7 +21,7 @@ public class PageRankMapper extends Mapper<Text, Node, Text, Node> {
     public void setup(Context context) {
         Configuration conf = context.getConfiguration();
         iteration = conf.getInt(Constant.ITERATION, -10);
-        pageCount = conf.getInt(Constant.PAGE_COUNT, -10);
+        pageCount = conf.getLong(Constant.PAGE_COUNT, -10);
 
         if (iteration == -10 || pageCount == -10) {
             throw new Error("Didn't propagate iteration or page count");

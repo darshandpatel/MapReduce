@@ -25,13 +25,13 @@ public class PageRankReducer extends Reducer<Text, Node, Text, Node> {
     public void setup(Context context) {
 
         Configuration conf = context.getConfiguration();
-        iteration = conf.getInt(code.Constant.ITERATION, -10);
-        pageCount = conf.getLong(code.Constant.PAGE_COUNT, -10L);
-        alpha = conf.getDouble(code.Constant.ALPHA, -10);
+        iteration = conf.getInt(Constant.ITERATION, -10);
+        pageCount = conf.getLong(Constant.PAGE_COUNT, -10L);
+        alpha = conf.getDouble(Constant.ALPHA, -10);
         danglingNodesPRSum = conf.getDouble(Constant.DANGLING_NODES_PR_SUM, 0);
-        danglingNodesPRSum = danglingNodesPRSum / Math.pow(10, 12);
+        danglingNodesPRSum = danglingNodesPRSum / Math.pow(10, Constant.POWER);
 
-        if (iteration == -10 || pageCount == -10 || alpha == -10) {
+        if (iteration == -10 || pageCount == -10L || alpha == -10) {
             throw new Error("Didn't propagate on Page Rank Reducer");
         }
 
@@ -46,8 +46,7 @@ public class PageRankReducer extends Reducer<Text, Node, Text, Node> {
 
         // Calculate New Page Rank for the give page (key)
         double pageRankContributionSum = 0d;
-        // If current page doesn't have an adjacency page list attached to it then its dead node.
-        boolean deadNode = true;
+
 
         for (Node node : nodes) {
 
@@ -57,13 +56,7 @@ public class PageRankReducer extends Reducer<Text, Node, Text, Node> {
             } else {
                 nodeWithAdjNodes.setAdjacencyNodes(node.getAdjacencyNodes());
                 // Current page  have an adjacency page list attached to it so its not a dead node.
-                deadNode = false;
             }
-        }
-
-        // Ignore the dead nodes.
-        if (deadNode) {
-            return;
         }
 
         // New Page Rank
@@ -73,11 +66,11 @@ public class PageRankReducer extends Reducer<Text, Node, Text, Node> {
         // If current node is dangling node then increment global counter which keeps the track of
         // sum of page rank of dangling node.
         if (nodeWithAdjNodes.getAdjacencyNodes().size() == 0) {
-            context.getCounter(COUNTERS.DANGLING_NODE_PR_SUM).increment(Double.doubleToLongBits(newPageRank));
+            context.getCounter(COUNTERS.DANGLING_NODE_PR_SUM).increment((long) (newPageRank * Math.pow(10, Constant.POWER)));
         }
 
-        //context.getCounter(COUNTERS.TOTAL_PR).increment((long) (newPageRank * Math.pow(10, 12)));
-        context.getCounter(COUNTERS.TOTAL_PR).increment(Double.doubleToLongBits(newPageRank));
+        //context.getCounter(COUNTERS.TOTAL_PR).increment());
+        context.getCounter(COUNTERS.TOTAL_PR).increment((long) (newPageRank * Math.pow(10, Constant.POWER)));
 
         // Emit the node which has new page rank and adjacency page list
         context.write(key, nodeWithAdjNodes);

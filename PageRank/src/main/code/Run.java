@@ -39,15 +39,15 @@ public class Run {
         conf.setLong(Constant.NUMBER_OF_DANGLING_NODE, danglingNodeCounter.getValue());
 
         conf.setDouble(Constant.ALPHA, 0.15);
+        //conf.setDouble(Constant.DANGLING_NODES_PR_SUM, ((double)danglingNodeCounter.getValue())*(1d/pageCounter.getValue()));
 
-        /*
         int iteration;
-        for (iteration = 0; iteration <20; iteration++) {
-            conf.setInt("iteration", iteration);
+        for (iteration = 0; iteration <10; iteration++) {
+            conf.setInt(Constant.ITERATION, iteration);
             String inputPath;
             inputPath = "data" + (iteration - 1);
             if (iteration == 0) {
-                inputPath = "parsing";
+                inputPath = Constant.NUMBER_OUTPUT;
             }
 
             Job pageRankJob = pageRankJob(inputPath, iteration, conf);
@@ -56,13 +56,14 @@ public class Run {
             conf.setLong(Constant.DANGLING_NODES_PR_SUM, danglingNodesPRSum.getValue());
 
             Counter totalPR = pageRankJob.getCounters().findCounter(COUNTERS.TOTAL_PR);
-            System.out.println("Total page rank : " + (totalPR.getValue()/Math.pow(10, 12)));
+            System.out.println("Total page rank : " + (totalPR.getValue()/Math.pow(10, Constant.POWER)));
+            System.out.println("Dangling Node Page Rank sum : " + (danglingNodesPRSum.getValue()/Math.pow(10, Constant.POWER)));
 
         }
 
         Run.top100("data" + (iteration - 1), otherArgs[1], conf);
         //Run.sampleOutput("data"+(iteration-1), otherArgs[1], conf);
-        */
+
     }
 
     public static Job performParsingJob(String inputPath, String outputPath,
@@ -153,8 +154,8 @@ public class Run {
         Job job = Job.getInstance(conf, "Top 100");
         job.setJarByClass(Run.class);
         job.setMapperClass(TopMapper.class);
-        //job.setReducerClass(TopReducer.class);
-        job.setReducerClass(SampleReducer.class);
+        job.setReducerClass(TopReducer.class);
+        //job.setReducerClass(SampleReducer.class);
         job.setSortComparatorClass(DoubleComparator.class);
         job.setMapOutputKeyClass(DoubleWritable.class);
         job.setMapOutputValueClass(Text.class);
