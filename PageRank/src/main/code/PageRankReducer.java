@@ -28,8 +28,8 @@ public class PageRankReducer extends Reducer<Text, Node, Text, Node> {
         iteration = conf.getInt(Constant.ITERATION, -10);
         pageCount = conf.getLong(Constant.PAGE_COUNT, -10L);
         alpha = conf.getDouble(Constant.ALPHA, -10);
-        danglingNodesPRSum = conf.getDouble(Constant.DANGLING_NODES_PR_SUM, 0);
-        danglingNodesPRSum = danglingNodesPRSum / Math.pow(10, Constant.POWER);
+        long tempDanglingNodesPRSum = conf.getLong(Constant.DANGLING_NODES_PR_SUM, 0);
+        danglingNodesPRSum = ((double)tempDanglingNodesPRSum) / Math.pow(10, Constant.POWER);
 
         if (iteration == -10 || pageCount == -10L || alpha == -10) {
             throw new Error("Didn't propagate on Page Rank Reducer");

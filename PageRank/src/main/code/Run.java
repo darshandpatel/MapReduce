@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Job;
@@ -27,25 +26,40 @@ public class Run {
             System.exit(2);
         }
 
+        // First perform the parsing job
+        // Parsing Job parses the source data and converts into source and its adjacency list format
         Job parsingJob = performParsingJob(otherArgs[0], Constant.PARSING_OUTPUT, conf);
+
+        // Now cacluate the number of pages and dangling page/nodes in the parsed data
         Job numberJob = performNumberCalJob(Constant.PARSING_OUTPUT, Constant.NUMBER_OUTPUT, conf);
+        // Example :
+        // A : [B, C , D]
+        // B : [C , A]
+        // C : [D]
+        // Here Total number of nodes are 4 (A B C D), Number of node could have be calcuated in the parsing job
+        // but in parsing job we woundn't be able to count D as a node as its only exist in adjacency list.
+        // The main pupose of number job to calculate all nodes in the graph including node such as D.
 
         Counter pageCounter = numberJob.getCounters().findCounter(COUNTERS.PAGE_COUNTER);
-        System.out.println("Page Counter : " + pageCounter.getValue());
         conf.setLong(Constant.PAGE_COUNT, pageCounter.getValue());
 
         Counter danglingNodeCounter = numberJob.getCounters().findCounter(COUNTERS.NUMBER_OF_DANGLING_NODE);
-        System.out.println("Number of Dangling node : " + danglingNodeCounter.getValue());
         conf.setLong(Constant.NUMBER_OF_DANGLING_NODE, danglingNodeCounter.getValue());
 
+        System.out.println("Page Counter : " + pageCounter.getValue());
+        System.out.println("Number of Dangling node : " + danglingNodeCounter.getValue());
+
         conf.setDouble(Constant.ALPHA, 0.15);
-        //conf.setDouble(Constant.DANGLING_NODES_PR_SUM, ((double)danglingNodeCounter.getValue())*(1d/pageCounter.getValue()));
+        // Calculate the sum of dangling node page rank
+        // conf.setDouble(Constant.DANGLING_NODES_PR_SUM, ((double)danglingNodeCounter.getValue())*(1d/pageCounter.getValue()));
 
         int iteration;
+        // Page Rank Calculation Iteration
         for (iteration = 0; iteration <10; iteration++) {
             conf.setInt(Constant.ITERATION, iteration);
             String inputPath;
             inputPath = "data" + (iteration - 1);
+            // First interation, source data is output of Number Calcuation Job.
             if (iteration == 0) {
                 inputPath = Constant.NUMBER_OUTPUT;
             }
@@ -57,15 +71,32 @@ public class Run {
 
             Counter totalPR = pageRankJob.getCounters().findCounter(COUNTERS.TOTAL_PR);
             System.out.println("Total page rank : " + (totalPR.getValue()/Math.pow(10, Constant.POWER)));
-            System.out.println("Dangling Node Page Rank sum : " + (danglingNodesPRSum.getValue()/Math.pow(10, Constant.POWER)));
+            //System.out.println("Dangling Node Page Rank sum : " + (danglingNodesPRSum.getValue()/Math.pow(10, Constant.POWER)));
 
         }
 
-        Run.top100("data" + (iteration - 1), otherArgs[1], conf);
+        // This job calculates the top 100 records by pagerank
+        Job top100 = Run.top100("data" + (iteration - 1), otherArgs[1], conf);
+        Counter totalPR = top100.getCounters().findCounter(COUNTERS.TOTAL_PR);
+
+        // To display readable output
         //Run.sampleOutput("data"+(iteration-1), otherArgs[1], conf);
+        // Final Total page rank of all pages in the graph.
+        //System.out.println("Total page rank : " + (totalPR.getValue()/Math.pow(10, Constant.POWER)));
+
 
     }
 
+    /**
+     * This method performs the parsin Map Reduce job.
+     * @param inputPath
+     * @param outputPath
+     * @param conf
+     * @return
+     * @throws IOException
+     * @throws ClassNotFoundException
+     * @throws InterruptedException
+     */
     public static Job performParsingJob(String inputPath, String outputPath,
                                         Configuration conf) throws IOException, ClassNotFoundException, InterruptedException {
 
@@ -76,6 +107,7 @@ public class Run {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Node.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        job.setPartitionerClass(PageRankPartitioner.class);
 
         FileInputFormat.addInputPath(job, new Path(inputPath));
         FileOutputFormat.setOutputPath(job, new Path(outputPath));
@@ -85,6 +117,18 @@ public class Run {
 
     }
 
+
+    /**
+     * This method performs the map reduce job to calculate total number of nodes in the graph. This could have be
+     * done in parsing job but to accomodate special dead node cases as we can not ignore them, this job is created.
+     * @param inputPath
+     * @param outputPath
+     * @param conf
+     * @return
+     * @throws IOException
+     * @throws ClassNotFoundException
+     * @throws InterruptedException
+     */
     public static Job performNumberCalJob(String inputPath, String outputPath,
                                         Configuration conf) throws IOException, ClassNotFoundException, InterruptedException {
 
@@ -96,6 +140,7 @@ public class Run {
         job.setOutputValueClass(Node.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        job.setPartitionerClass(PageRankPartitioner.class);
 
         FileInputFormat.addInputPath(job, new Path(inputPath));
         FileOutputFormat.setOutputPath(job, new Path(outputPath));
@@ -105,6 +150,16 @@ public class Run {
 
     }
 
+    /**
+     * This method calculates the page rank
+     * @param inputPath
+     * @param interation
+     * @param conf
+     * @return
+     * @throws IOException
+     * @throws ClassNotFoundException
+     * @throws InterruptedException
+     */
     public static Job pageRankJob(String inputPath, int interation,
                                   Configuration conf) throws IOException, ClassNotFoundException, InterruptedException {
 
@@ -116,7 +171,7 @@ public class Run {
         job.setMapOutputValueClass(Node.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Node.class);
-
+        job.setPartitionerClass(PageRankPartitioner.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
@@ -127,6 +182,52 @@ public class Run {
         return job;
     }
 
+
+    /**
+     * This method calculates the top 100 page with higher page rank.
+     * @param inputPath
+     * @param outputPath
+     * @param conf
+     * @return
+     * @throws IOException
+     * @throws ClassNotFoundException
+     * @throws InterruptedException
+     */
+    public static Job top100(String inputPath, String outputPath,
+                             Configuration conf) throws IOException, ClassNotFoundException, InterruptedException {
+
+        Job job = Job.getInstance(conf, "Top 100");
+        job.setJarByClass(Run.class);
+        job.setMapperClass(TopMapper.class);
+        job.setReducerClass(TopReducer.class);
+        //job.setReducerClass(SampleReducer.class);
+        job.setPartitionerClass(PageRankPartitioner.class);
+        job.setSortComparatorClass(DoubleComparator.class);
+        job.setMapOutputKeyClass(DoubleWritable.class);
+        job.setMapOutputValueClass(Text.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(DoubleWritable.class);
+
+        job.setNumReduceTasks(1);
+        job.setInputFormatClass(SequenceFileInputFormat.class);
+
+        FileInputFormat.addInputPath(job, new Path(inputPath));
+        FileOutputFormat.setOutputPath(job, new Path(outputPath));
+
+        job.waitForCompletion(true);
+        return job;
+    }
+
+    /**
+     * This method run the job by which output data can be seen
+     * @param inputPath
+     * @param outputPath
+     * @param conf
+     * @return
+     * @throws IOException
+     * @throws ClassNotFoundException
+     * @throws InterruptedException
+     */
     public static Job sampleOutput(String inputPath, String outputPath,
                                    Configuration conf) throws IOException, ClassNotFoundException, InterruptedException {
 
@@ -138,31 +239,6 @@ public class Run {
         job.setMapOutputValueClass(DoubleWritable.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(DoubleWritable.class);
-        job.setInputFormatClass(SequenceFileInputFormat.class);
-
-        FileInputFormat.addInputPath(job, new Path(inputPath));
-        FileOutputFormat.setOutputPath(job, new Path(outputPath));
-
-        job.waitForCompletion(true);
-        return job;
-    }
-
-
-    public static Job top100(String inputPath, String outputPath,
-                             Configuration conf) throws IOException, ClassNotFoundException, InterruptedException {
-
-        Job job = Job.getInstance(conf, "Top 100");
-        job.setJarByClass(Run.class);
-        job.setMapperClass(TopMapper.class);
-        job.setReducerClass(TopReducer.class);
-        //job.setReducerClass(SampleReducer.class);
-        job.setSortComparatorClass(DoubleComparator.class);
-        job.setMapOutputKeyClass(DoubleWritable.class);
-        job.setMapOutputValueClass(Text.class);
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(DoubleWritable.class);
-
-        job.setNumReduceTasks(1);
         job.setInputFormatClass(SequenceFileInputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(inputPath));

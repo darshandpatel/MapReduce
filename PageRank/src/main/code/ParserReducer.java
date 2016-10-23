@@ -6,6 +6,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -14,13 +15,18 @@ import java.util.Set;
 public class ParserReducer extends Reducer<Text, Node, Text, Node> {
 
     Node returnNode = new Node();
+    List<Text> adjNodes = new LinkedList<Text>();
 
     public void reduce(Text key, Iterable<Node> nodes,
                        Context context) throws IOException, InterruptedException {
 
+        /**
+         * If current same page exists multiple time in the source file then only consider once.
+         */
         Set<Text> uniqueAdjNodes = new HashSet<Text>();
         for(Node node: nodes){
             uniqueAdjNodes.addAll(node.getAdjacencyNodes());
+            break;
         }
 
         returnNode.setPageRank(0);

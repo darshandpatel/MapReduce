@@ -47,7 +47,7 @@ public class PageRankMapper extends Mapper<Text, Node, Text, Node> {
         }
 
         // Transfer the current page and its corresponding node which contains its page rank
-        // and adjanceny page list to reducer.
+        // and adjanceny page list for reducer.
         context.write(key, value);
     }
 }

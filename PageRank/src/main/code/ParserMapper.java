@@ -76,12 +76,12 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
                 linkPageNames.clear();
             }
             Set<String> pageNamesSet = new HashSet<String>(linkPageNames);
-            linkPageNames = new ArrayList(pageNamesSet);
+            // Remove source page name from its adjacency list if exists.
+            pageNamesSet.remove(pageName);
+            linkPageNames = new LinkedList<String>(pageNamesSet);
 
             // Set the source page name as key
             returnKey.set(pageName);
-            // Remove source page name from its adjacency list if exists.
-            linkPageNames = ParserMapper.removeSourcePage(linkPageNames, pageName);
 
             // If current page doesn't have adjacency pages then emit the node with empty adjacency list
             // and set its page rank to zero and this node is not page rank contribution node (Will be discussed more in
@@ -103,18 +103,6 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
         }
     }
 
-    /**
-     * This method removes the source page name from its adjacency page lists if exists.
-     * @param linkPageNames List of adjacency pages
-     * @param sourcePage source page name
-     * @return List of adjacency pages which doesn't contain source page name in it.
-     */
-    public static List<String> removeSourcePage(List<String> linkPageNames, String sourcePage) {
 
-        while (linkPageNames.remove(sourcePage)) {
-        }
-
-        return linkPageNames;
-    }
 
 }

@@ -9,7 +9,7 @@ public class Constant {
     public static String NUMBER_OF_DANGLING_NODE = "NUMBER_OF_DANGLING_NODE";
     public static String PARSING_OUTPUT = "parsing";
     public static String NUMBER_OUTPUT = "number";
-    public static Integer POWER = 15;
+    public static Integer POWER = 9;
 }
 
 enum COUNTERS {

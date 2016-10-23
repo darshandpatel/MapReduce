@@ -6,6 +6,7 @@ import org.apache.hadoop.io.WritableComparator;
 
 /**
  * Created by Darshan on 10/23/16.
+ * This class is used to compare DoubleWritables and produce sort in descending order
  */
 public class DoubleComparator extends WritableComparator {
 
