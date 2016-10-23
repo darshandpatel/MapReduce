@@ -2,8 +2,7 @@ package code;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -76,6 +75,8 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
                 // Discard ill-formatted pages.
                 linkPageNames.clear();
             }
+            Set<String> pageNamesSet = new HashSet<String>(linkPageNames);
+            linkPageNames = new ArrayList(pageNamesSet);
 
             // Set the source page name as key
             returnKey.set(pageName);
@@ -95,9 +96,6 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
                 node.setPageRank(0);
                 context.write(returnKey, node);
             }
-
-            // Keep track of how many pages exists in the source
-            context.getCounter(COUNTERS.PAGE_COUNTER).increment(1);
 
         } catch (Exception e1) {
             // TODO Auto-generated catch block

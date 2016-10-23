@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Job;
@@ -103,7 +102,6 @@ public class Run {
         job.setJarByClass(Run.class);
         job.setMapperClass(SampleMapper.class);
         job.setReducerClass(Reducer.class);
-        job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(DoubleWritable.class);
         job.setOutputKeyClass(Text.class);
@@ -125,10 +123,11 @@ public class Run {
         job.setJarByClass(Run.class);
         job.setMapperClass(TopMapper.class);
         job.setReducerClass(TopReducer.class);
-        job.setSortComparatorClass(LongWritable.DecreasingComparator.class);
+        //fjob.setSortComparatorClass(DoubleWritable.);
         job.setMapOutputKeyClass(DoubleWritable.class);
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
+        job.setNumReduceTasks(1);
         job.setOutputValueClass(DoubleWritable.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
 

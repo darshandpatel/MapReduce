@@ -16,9 +16,10 @@ public class TopMapper extends Mapper<Text, Node, DoubleWritable, Text> {
     Text pageName = new Text();
     HashMap<String, Double> pagerankMap;
 
-    public void setup(){
+    protected void setup(Context context) throws IOException, InterruptedException {
+
         pagerankMap = new HashMap<String, Double>();
-        
+        System.out.println("Within setup method of Topmapper ************************************************************");
     }
 
     public void map(Text key, Node value, Context context) throws IOException, InterruptedException {
@@ -28,7 +29,7 @@ public class TopMapper extends Mapper<Text, Node, DoubleWritable, Text> {
         //context.write(pageRank, key);
     }
 
-    public void cleanup(Context context) throws IOException, InterruptedException {
+    protected void cleanup(Context context) throws IOException, InterruptedException {
 
         ValueComparator valueComp = new ValueComparator(pagerankMap);
         TreeMap<String, Double> sortedPageRankMap = new TreeMap<String, Double>(valueComp);
