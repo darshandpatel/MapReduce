@@ -31,40 +31,30 @@ public class TopMapper extends Mapper<Text, Node, DoubleWritable, Text> {
 
     protected void cleanup(Context context) throws IOException, InterruptedException {
 
-        ValueComparator valueComp = new ValueComparator(pagerankMap);
-        TreeMap<String, Double> sortedPageRankMap = new TreeMap<String, Double>(valueComp);
-
         int count = 0;
-        Iterator<Map.Entry<String, Double>> iterator = sortedPageRankMap.entrySet().iterator();
-        while(iterator.hasNext()){
 
+        List<Map.Entry<String, Double>> list = new LinkedList(pagerankMap.entrySet());
+        // Defined Custom Comparator here
+        Collections.sort(list, new Comparator() {
+            public int compare(Object o1, Object o2) {
+                return ((Comparable) ((Map.Entry)(o2)).getValue())
+                        .compareTo(((Map.Entry)(o1)).getValue());
+            }
+        });
+
+        for(Iterator it = list.iterator(); it.hasNext();) {
             if(count < 100){
-                Map.Entry<String, Double> pair = iterator.next();
+                Map.Entry<String, Double> pair = (Map.Entry<String, Double>) it.next();
                 pageRank.set(pair.getValue());
                 pageName.set(pair.getKey());
                 context.write(pageRank, pageName);
+                count++;
+            }else {
+                break;
             }
-
-        }
-
-        context.write(pageRank, pageName);
-    }
-
-    class ValueComparator implements Comparator<String> {
-        Map<String, Double> map;
-
-        public ValueComparator(Map<String, Double> map) {
-            this.map = map;
-        }
-
-        public int compare(String name1, String name2) {
-            if (map.get(name1) < map.get(name2)) {
-                return -1;
-            } else {
-                return 1;
-            } // returning 0 would merge keys
         }
     }
+
 }
 
 

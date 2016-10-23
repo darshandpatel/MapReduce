@@ -33,3 +33,16 @@ public class TopReducer extends Reducer<DoubleWritable, Text, Text, DoubleWritab
 
     }
 }
+
+
+class SampleReducer extends Reducer<DoubleWritable, Text, Text, DoubleWritable> {
+
+    public void reduce(DoubleWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+
+        for(Text value : values){
+            context.write(value, key);
+        }
+
+    }
+
+}

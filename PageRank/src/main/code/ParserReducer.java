@@ -11,12 +11,12 @@ import java.util.Set;
 /**
  * Created by Darshan on 10/22/16.
  */
-public class ParserReducer {
+public class ParserReducer extends Reducer<Text, Node, Text, Node> {
 
     Node returnNode = new Node();
 
     public void reduce(Text key, Iterable<Node> nodes,
-                       Reducer.Context context) throws IOException, InterruptedException {
+                       Context context) throws IOException, InterruptedException {
 
         Set<Text> uniqueAdjNodes = new HashSet<Text>();
         for(Node node: nodes){
@@ -27,7 +27,5 @@ public class ParserReducer {
         returnNode.setIsOnlyPageRankContribution(false);
         returnNode.setAdjacencyNodes(new LinkedList<Text>(uniqueAdjNodes));
         context.write(key, returnNode);
-        // Keep track of how many pages exists in the source
-        context.getCounter(COUNTERS.PAGE_COUNTER).increment(1);
     }
 }

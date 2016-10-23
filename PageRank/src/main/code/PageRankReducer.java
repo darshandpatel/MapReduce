@@ -73,8 +73,11 @@ public class PageRankReducer extends Reducer<Text, Node, Text, Node> {
         // If current node is dangling node then increment global counter which keeps the track of
         // sum of page rank of dangling node.
         if (nodeWithAdjNodes.getAdjacencyNodes().size() == 0) {
-            context.getCounter(COUNTERS.DANGLING_NODE_PR_SUM).increment((long) (newPageRank * Math.pow(10, 12)));
+            context.getCounter(COUNTERS.DANGLING_NODE_PR_SUM).increment(Double.doubleToLongBits(newPageRank));
         }
+
+        //context.getCounter(COUNTERS.TOTAL_PR).increment((long) (newPageRank * Math.pow(10, 12)));
+        context.getCounter(COUNTERS.TOTAL_PR).increment(Double.doubleToLongBits(newPageRank));
 
         // Emit the node which has new page rank and adjacency page list
         context.write(key, nodeWithAdjNodes);
