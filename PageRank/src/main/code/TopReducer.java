@@ -12,21 +12,23 @@ import org.apache.hadoop.mapreduce.Reducer;
 public class TopReducer extends Reducer<DoubleWritable, Text, Text, DoubleWritable> {
 
     int counter;
-
-    public void setup() {
-        counter = 0;
+    Text outputText = new Text();
+    public void setup(Context context) throws IOException, InterruptedException{
+        counter = 1;
+        System.out.println("Setup is called");
     }
 
     public void reduce(DoubleWritable key, Iterable<Text> pages,
                        Context context) throws IOException, InterruptedException {
 
-        if (counter < 100) {
+        if (counter <= 100) {
             for (Text page : pages) {
-                counter += 1;
-                if (counter > 99) {
+                if (counter > 100) {
                     break;
                 } else {
-                    context.write(page, key);
+                    outputText.set(counter + " " +page.toString());
+                    context.write(outputText, key);
+                    counter += 1;
                 }
             }
         }

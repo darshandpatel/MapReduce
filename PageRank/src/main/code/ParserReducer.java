@@ -23,15 +23,14 @@ public class ParserReducer extends Reducer<Text, Node, Text, Node> {
         /**
          * If current same page exists multiple time in the source file then only consider once.
          */
-        Set<Text> uniqueAdjNodes = new HashSet<Text>();
         for(Node node: nodes){
-            uniqueAdjNodes.addAll(node.getAdjacencyNodes());
+            adjNodes = node.getAdjacencyNodes();
             break;
         }
 
         returnNode.setPageRank(0);
         returnNode.setIsOnlyPageRankContribution(false);
-        returnNode.setAdjacencyNodes(new LinkedList<Text>(uniqueAdjNodes));
+        returnNode.setAdjacencyNodes(adjNodes);
         context.write(key, returnNode);
     }
 }

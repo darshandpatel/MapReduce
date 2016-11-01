@@ -18,7 +18,7 @@ public class PageRankMapper extends Mapper<Text, Node, Text, Node> {
      * in the Wiki graph
      * @param context
      */
-    public void setup(Context context) {
+    public void setup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         iteration = conf.getInt(Constant.ITERATION, -10);
         pageCount = conf.getLong(Constant.PAGE_COUNT, -10);
@@ -32,7 +32,7 @@ public class PageRankMapper extends Mapper<Text, Node, Text, Node> {
 
         // At first interation, page rank of each page is equal to 1/N
         if (iteration == 0) {
-            value.setPageRank(((1d / pageCount))); // * Math.pow(10, 12)
+            value.setPageRank((((double)1) / pageCount)); // * Math.pow(10, 12)
         }
 
         int adjLen = value.getAdjacencyNodes().size();

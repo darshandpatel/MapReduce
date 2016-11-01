@@ -77,7 +77,7 @@ public class Run {
 
         // This job calculates the top 100 records by pagerank
         Job top100 = Run.top100("data" + (iteration - 1), otherArgs[1], conf);
-        Counter totalPR = top100.getCounters().findCounter(COUNTERS.TOTAL_PR);
+        //Counter totalPR = top100.getCounters().findCounter(COUNTERS.TOTAL_PR);
 
         // To display readable output
         //Run.sampleOutput("data"+(iteration-1), otherArgs[1], conf);

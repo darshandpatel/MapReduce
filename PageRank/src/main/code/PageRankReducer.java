@@ -22,7 +22,7 @@ public class PageRankReducer extends Reducer<Text, Node, Text, Node> {
      * in the Wiki graph, damping factor(alpha) and sum of page rank of dangling nodes.
      * @param context
      */
-    public void setup(Context context) {
+    public void setup(Context context) throws IOException, InterruptedException {
 
         Configuration conf = context.getConfiguration();
         iteration = conf.getInt(Constant.ITERATION, -10);

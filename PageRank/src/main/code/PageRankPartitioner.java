@@ -10,7 +10,8 @@ public class PageRankPartitioner extends Partitioner<Text, Node> {
 
     @Override
     public int getPartition(Text key, Node value, int nbrOfReducer){
-        return Math.max(Math.floorMod(key.toString().hashCode(), nbrOfReducer), 0);
+        int reducerNumber = Math.floorMod(key.toString().hashCode(), nbrOfReducer);
+        return Math.max(reducerNumber, 0);
     }
 
 }
