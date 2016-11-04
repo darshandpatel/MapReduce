@@ -43,7 +43,7 @@ object Parser {
     val lines = sc.textFile(input).filter(line => isGoodName(line)).
     map(line => {
     val node = bz2WikiParser(line)
-    (node.getPageName, node.getAdjPages)
+    (node.pageName, node.adjPages)
     }).keyBy{line => line._1}
 
     //lines.saveAsTextFile("./parseoutput")
@@ -80,7 +80,7 @@ object Parser {
   def bz2WikiParser(line : String): Node ={
     // Configure parser
     var linkPageNames: util.List[String] = new util.LinkedList[String]
-    val node: Node = new Node
+
 
     val spf: SAXParserFactory = SAXParserFactory.newInstance
     spf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
@@ -109,9 +109,7 @@ object Parser {
     pageNamesSet.remove(pageName)
     linkPageNames = new util.LinkedList[String](pageNamesSet)
 
-    node.setPageName(pageName)
-    node.setAdjPages(linkPageNames)
-
+    val node = Node(pageName, linkPageNames)
     node
   }
 
@@ -147,7 +145,7 @@ object Parser {
       val prContribSum = value._2
       var newPageRank = 0.0
       if(prContribSum != None){
-        newPageRank = (alpha/pageCount) + (1-alpha)*(prContribSum.get)
+        newPageRank = (alpha/pageCount) + (1-alpha)*(prContribSum.get + (delta/pageCount))
       }
       if(adjPages.length == 0){
         dangPRSum.add(newPageRank)
@@ -176,19 +174,22 @@ object Parser {
     var allPagesWithPR = allPages.mapValues(value => (value._2, 1.0d/pageCount))
 
     //println(distAdjPagePR.count())
-
+    allPagesWithPR.mapValues(value => value._2).saveAsTextFile("./InitialPageRank")
 
     var delta : Double = 0.0
 
-    val distAdjPagePR = distributePageRank(allPagesWithPR)
-    val returnValues = calculateNewPageRank(distAdjPagePR, allPagesWithPR, pageCount, delta, sc)
-    allPagesWithPR = returnValues._1
-    delta = returnValues._2
-
-
+    for(i <- 1 to 2) {
+      println("Iteration Number :" + i)
+      val distAdjPagePR = distributePageRank(allPagesWithPR)
+      val returnValues = calculateNewPageRank(distAdjPagePR, allPagesWithPR, pageCount, delta, sc)
+      allPagesWithPR = returnValues._1
+      delta = returnValues._2
+    }
+    allPagesWithPR.sortBy(page => page._2._2)
+    allPagesWithPR.mapValues(value => value._2).saveAsTextFile("./FinalOutput")
 
   }
 
 }
-case class Index(i:Integer, j:Integer)
-case class Val(x:Double, y:Double)
+
+case class Node(pageName : String, adjPages : util.List[String])
