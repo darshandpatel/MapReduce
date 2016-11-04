@@ -24,33 +24,91 @@ object Parser {
       map(line => {
         val node = Bz2WikiParser.parseHTMLPage(line)
         (node.getPageName, node.getAdjPages)
-      })
+      }).keyBy{line => line._1}
 
-    lines.saveAsTextFile("./parseoutput")
-
-    val results = lines.flatMap(line => {
-      val pageName = line._1
-      val adjPages = line._2
-      val emptyAdjPages =  List[String]().asJava
-      List(adjPages).map(page => (pageName, emptyAdjPages))
-      List((pageName, adjPages)).map(x=>x)
-    })
-
-    //val keyedResults = results.keyBy(_ => _1)
+    //lines.saveAsTextFile("./parseoutput")
 
     /*
-    val finalResults = results.reduceByKey({ (a, b) =>
-      if(a.length == 0){
-        if(b.length == 0){
-          a
+    val upates = lines.flatMap(line => {
+      val length = line._2.size()
+      val values = for(i <- 0 until 1) yield {
+        if(i==0){
+          (line._1, line._2)
         }else{
-          b
+          val emptyAdjPages =  List[String]().asJava
+          for(j <- 0 until length) yield {
+            (line._2.get(j), emptyAdjPages)
+          }
         }
       }
-      a
+      values.flatten
     })
+    upates.saveAsTextFile("./updates")
     */
-    results.saveAsTextFile("./firstoutput")
+
+
+    val dummyLines = lines.flatMap(line => {
+      //val pageName = line._2._1
+      val adjPages = line._2._2
+      //adjPages.asScala.toList.foreach(page => (page, emptyAdjPages))
+      val newArray = for (value <- adjPages) yield {
+        val emptyAdjPages =  List[String]().asJava
+        (value, emptyAdjPages)
+      }
+      newArray
+    }).keyBy{ line => line._1}
+
+    //dummyLines.saveAsTextFile("./dummyLines")
+
+    val reducedDummyLines = dummyLines.reduceByKey((a, b) => a)
+
+    val allPages = lines.union(reducedDummyLines)
+
+    val reducedAllPages = allPages.reduceByKey({(a, b) =>
+        if(a._2.length == 0){
+          b
+        }else{
+          a
+        }
+    })
+
+    val nbrOfPages = sc.longAccumulator("Total Number of pages")
+    reducedAllPages.foreach(x => nbrOfPages.add(1))
+    val pages = nbrOfPages.value
+
+    //reducedAllPages.saveAsTextFile("./reducedAllPages")
+
+    val pageWithPRContrib = reducedAllPages.flatMap( line => {
+      val adjPages = line._2._2
+      //var isDangling = false
+      //if(adjPages.length == 0){
+      //  isDangling = true
+      //}
+      val newArray = for (value <- adjPages) yield {
+        (value, 1.0d/pages)
+      }
+      newArray
+    }).keyBy{line => line._1}
+
+
+    val reducedPagePR = pageWithPRContrib.reduceByKey({(a,b) =>
+      (a._1, a._2 + b._2)
+    })
+
+    println("dummyLines : " + dummyLines.count())
+    println("nbr of pages " + pages)
+    println("pageWithPRContrib : " + pageWithPRContrib.count())
+    println("reducedPagePR : " + reducedPagePR.count())
+    reducedPagePR.saveAsTextFile("./reducedPagePR")
+    // First Iteration of Page Rank
+
+    //val linesWithPR = reducedAllPages.join(reducedPagePR)
+    //reductedunionLines.saveAsTextFile("./reductedunionLines")
+
+    // val finalResults = reduceDummyLines ++ lines
+    //finalResults.saveAsTextFile("./firstoutput")
+
+
     /*
 
      val results = lines.flatMap(line => {
