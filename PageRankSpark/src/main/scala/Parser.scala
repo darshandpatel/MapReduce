@@ -2,7 +2,6 @@ import java.io.StringReader
 
 import org.apache.spark.rdd.RDD._
 import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import java.util
@@ -29,12 +28,12 @@ object Parser {
     val matcher: Matcher = namePattern.matcher(pageName)
     val questionMatcher: Matcher = questionPattern.matcher(pageName)
 
-    //if (!matcher.find() || !specialCharMatcher.find())
     if (!matcher.find || questionMatcher.find) {
+    //if (!matcher.find) {
       // Skip this html file, name contains (~).
-      false
+      return false
     }
-    true
+    return true
   }
 
   def initialParser(input : String, sc : SparkContext) : RDD[(String, (String, util.List[String]))] = {
@@ -113,31 +112,32 @@ object Parser {
     node
   }
 
-  def distributePageRank(pageInfo : RDD[(String, (util.List[String], Double))]): RDD[(String, Double)]={
+  def distributePageRank(pageInfo : RDD[(String, (util.List[String], Double))]): RDD[(String, (String, Double))]={
 
-    val prDistribution = pageInfo.flatMapValues( value => {
-      val adjPages = value._1
-      val pageRank = value._2
+    val prDistribution = pageInfo.flatMap( value => {
+      val adjPages = value._2._1
+      val pageRank = value._2._2
       val adjPageCount = adjPages.length
       val pageRankDist = for (adjPage <- adjPages) yield {
-      (1.0/(pageRank*adjPageCount))
+        (adjPage, pageRank/adjPageCount)
       }
       pageRankDist
-    })
+    }).keyBy{line => line._1}
 
-    val reducedPRDistribution = prDistribution.reduceByKey({(a,b) => a+b})
+    val reducedPRDistribution = prDistribution.reduceByKey({(a, b) => (a._1, a._2+b._2)})
     reducedPRDistribution
   }
 
-  def calculateNewPageRank(distAdjPagePR : RDD[(String, Double)],
+  def calculateNewPageRank(distAdjPagePR : RDD[(String, (String, Double))],
                            allPages : RDD[(String, (util.List[String], Double))],
                            pageCount : Long,
                            delta: Double,
-                           sc : SparkContext) : (RDD[(String, (util.List[String], Double))], Double) ={
+                           sc : SparkContext) : (RDD[(String, (util.List[String], Double))], Double, Double) ={
 
     val pagesWithContributionPR = allPages.leftOuterJoin(distAdjPagePR)
     val alpha = 0.15d
     val dangPRSum = sc.doubleAccumulator("Sum Of Dangling Node Page Rank")
+    val allPRSum = sc.doubleAccumulator("Sum of All Page Rank")
     val newPagePR = pagesWithContributionPR.mapValues( value => {
 
       val adjPages = value._1._1
@@ -145,14 +145,17 @@ object Parser {
       val prContribSum = value._2
       var newPageRank = 0.0
       if(prContribSum != None){
-        newPageRank = (alpha/pageCount) + (1-alpha)*(prContribSum.get + (delta/pageCount))
+        newPageRank = (alpha/pageCount) + (1-alpha)*(prContribSum.get._2 + (delta/pageCount))
+      }else{
+        newPageRank = (alpha/pageCount) + (1-alpha)*(delta/pageCount)
       }
-      if(adjPages.length == 0){
+      if(adjPages.size() == 0){
         dangPRSum.add(newPageRank)
       }
+      allPRSum.add(newPageRank)
       (adjPages, newPageRank)
     })
-    (newPagePR, dangPRSum.value)
+    (newPagePR,dangPRSum.value,allPRSum.value)
   }
 
   def main(args: Array[String]): Unit = {
@@ -171,23 +174,32 @@ object Parser {
     allPages.foreach(x => nbrOfPages.add(1))
     val pageCount = nbrOfPages.value
 
-    var allPagesWithPR = allPages.mapValues(value => (value._2, 1.0d/pageCount))
+    var allPagesWithPR = allPages.mapValues(value => (value._2, 1.0/pageCount))
 
     //println(distAdjPagePR.count())
-    allPagesWithPR.mapValues(value => value._2).saveAsTextFile("./InitialPageRank")
+    //allPagesWithPR.mapValues(value => value._2).saveAsTextFile("./InitialPageRank")
 
+    // At First Iteration sum of dangling node page rank is zero
     var delta : Double = 0.0
 
-    for(i <- 1 to 2) {
+    for(i <- 1 to 10) {
       println("Iteration Number :" + i)
       val distAdjPagePR = distributePageRank(allPagesWithPR)
+      //distAdjPagePR.saveAsTextFile("./DistributedPageRank")
       val returnValues = calculateNewPageRank(distAdjPagePR, allPagesWithPR, pageCount, delta, sc)
       allPagesWithPR = returnValues._1
       delta = returnValues._2
+      println("Danging node page rank sum : "+delta)
+      println("All Page Rank Sum : "+returnValues._3)
     }
-    allPagesWithPR.sortBy(page => page._2._2)
-    allPagesWithPR.mapValues(value => value._2).saveAsTextFile("./FinalOutput")
 
+    val localTop100 = allPagesWithPR.mapValues(line=>line._2).takeOrdered(100)(Ordering[Double].reverse.on(line => line._2))
+    sc.parallelize(localTop100).saveAsTextFile("./Top100")
+
+    //val sorted = allPagesWithPR.sortByKey(ascending = false, numPartitions = 10)
+    //sorted.mapValues(value => value._2).saveAsTextFile("./FinalOutput")
+    //sc.parallelize(sorted.mapValues(value => value._2).take(100)).saveAsTextFile("./Top100")
+    sys.exit(0)
   }
 
 }

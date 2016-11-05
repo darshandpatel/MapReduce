@@ -4,7 +4,7 @@ import java.util.List;
 /**
  * Created by Darshan on 11/3/16.
  */
-public class Node1 {
+public class PageNode {
 
     String pageName;
     List<String> adjPages;
