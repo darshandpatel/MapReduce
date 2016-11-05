@@ -8,6 +8,7 @@ import java.util
 import java.util.regex.{Matcher, Pattern}
 import javax.xml.parsers.{SAXParser, SAXParserFactory}
 
+import org.apache.spark.util.DoubleAccumulator
 import org.xml.sax.InputSource
 
 import scala.collection.JavaConversions._
@@ -132,12 +133,13 @@ object Parser {
                            allPages : RDD[(String, (util.List[String], Double))],
                            pageCount : Long,
                            delta: Double,
-                           sc : SparkContext) : (RDD[(String, (util.List[String], Double))], Double, Double) ={
+                           sc : SparkContext,
+                           dangPRSum : DoubleAccumulator,
+                           allPRSum : DoubleAccumulator) : RDD[(String, (util.List[String], Double))] ={
 
     val pagesWithContributionPR = allPages.leftOuterJoin(distAdjPagePR)
     val alpha = 0.15d
-    val dangPRSum = sc.doubleAccumulator("Sum Of Dangling Node Page Rank")
-    val allPRSum = sc.doubleAccumulator("Sum of All Page Rank")
+
     val newPagePR = pagesWithContributionPR.mapValues( value => {
 
       val adjPages = value._1._1
@@ -155,7 +157,13 @@ object Parser {
       allPRSum.add(newPageRank)
       (adjPages, newPageRank)
     })
-    (newPagePR,dangPRSum.value,allPRSum.value)
+    newPagePR
+  }
+
+  def evaluate[T](rdd:RDD[T]) = {
+    rdd.sparkContext.runJob(rdd,(iter: Iterator[T]) => {
+      while(iter.hasNext) iter.next()
+    })
   }
 
   def main(args: Array[String]): Unit = {
@@ -183,14 +191,18 @@ object Parser {
     var delta : Double = 0.0
 
     for(i <- 1 to 10) {
+
+      val dangPRSum = sc.doubleAccumulator("Sum Of Dangling Node Page Rank")
+      val allPRSum = sc.doubleAccumulator("Sum of All Page Rank")
+
       println("Iteration Number :" + i)
       val distAdjPagePR = distributePageRank(allPagesWithPR)
       //distAdjPagePR.saveAsTextFile("./DistributedPageRank")
-      val returnValues = calculateNewPageRank(distAdjPagePR, allPagesWithPR, pageCount, delta, sc)
-      allPagesWithPR = returnValues._1
-      delta = returnValues._2
+      allPagesWithPR = calculateNewPageRank(distAdjPagePR, allPagesWithPR, pageCount, delta, sc, dangPRSum, allPRSum)
+      evaluate(allPagesWithPR)
+      delta = dangPRSum.value
       println("Danging node page rank sum : "+delta)
-      println("All Page Rank Sum : "+returnValues._3)
+      println("All Page Rank Sum : "+allPRSum.value)
     }
 
     val localTop100 = allPagesWithPR.mapValues(line=>line._2).takeOrdered(100)(Ordering[Double].reverse.on(line => line._2))
