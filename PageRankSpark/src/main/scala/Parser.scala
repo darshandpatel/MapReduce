@@ -37,7 +37,21 @@ object Parser {
     return true
   }
 
-  def flatMapfun(page : (String, util.List[String])): Iterator[(String, util.List[String])] ={
+
+  def parseInputAndConvertDeadIntoDangling(pages: Iterator[String]) : Iterator[(String, util.List[String])] ={
+
+    val pageWithAdj = pages.filter(line => isGoodName(line)).
+      map( line => {
+      val node = bz2WikiParser(line)
+      (node.pageName, node.adjPages)
+    })
+
+    val adjPageWithDummyAdj = pageWithAdj.flatMap(line => makeAdjPageWithDummyAdj(line))
+    pageWithAdj ++ adjPageWithDummyAdj
+
+  }
+
+  def makeAdjPageWithDummyAdj(page : (String, util.List[String])): Iterator[(String, util.List[String])] ={
 
     val adjPages = page._2
 
@@ -49,21 +63,16 @@ object Parser {
 
   }
 
-  def parseInputAndConvertDeadIntoDangling(pages: Iterator[String]) : Iterator[(String, util.List[String])] ={
-
-    val pageWithAdj = pages.filter(line => isGoodName(line)).
-      map( line => {
-      val node = bz2WikiParser(line)
-      (node.pageName, node.adjPages)
-    })
-
-    val adjPageWithDummyAdj = pageWithAdj.flatMap(line => flatMapfun(line))
-    pageWithAdj ++ adjPageWithDummyAdj
-  }
-
   def initialParser2(input : String, sc : SparkContext) : RDD[(String, (String, util.List[String]))] = {
-    val lines = sc.textFile(input).mapPartitions(lines => parseInputAndConvertDeadIntoDangling(lines)).keyBy(line => line._1)
-    lines
+    val allPages = sc.textFile(input, 10).mapPartitions(lines => parseInputAndConvertDeadIntoDangling(lines)).keyBy(line => line._1)
+    val reducedAllPages = allPages.reduceByKey({(a, b) =>
+      if(a._2.length == 0){
+        b
+      }else{
+        a
+      }
+    })
+    reducedAllPages
   }
 
   def initialParser(input : String, sc : SparkContext) : RDD[(String, (String, util.List[String]))] = {
@@ -76,8 +85,6 @@ object Parser {
       }).keyBy{line => line._1}.cache()
 
     //lines.saveAsTextFile("./parseoutput")
-
-    //val lines = sc.textFile(input).mapPartitions()
 
     // Convert the Dead nodes into Dangling nodes
     val dummyLines = lines.flatMap(line => {
