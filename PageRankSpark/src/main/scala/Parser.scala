@@ -37,16 +37,47 @@ object Parser {
     return true
   }
 
+  def flatMapfun(page : (String, util.List[String])): Iterator[(String, util.List[String])] ={
+
+    val adjPages = page._2
+
+    val newArray = for (value <- adjPages) yield {
+      val emptyAdjPages =  List[String]().asJava
+      (value, emptyAdjPages)
+    }
+    newArray.iterator
+
+  }
+
+  def parseInputAndConvertDeadIntoDangling(pages: Iterator[String]) : Iterator[(String, util.List[String])] ={
+
+    val pageWithAdj = pages.filter(line => isGoodName(line)).
+      map( line => {
+      val node = bz2WikiParser(line)
+      (node.pageName, node.adjPages)
+    })
+
+    val adjPageWithDummyAdj = pageWithAdj.flatMap(line => flatMapfun(line))
+    pageWithAdj ++ adjPageWithDummyAdj
+  }
+
+  def initialParser2(input : String, sc : SparkContext) : RDD[(String, (String, util.List[String]))] = {
+    val lines = sc.textFile(input).mapPartitions(lines => parseInputAndConvertDeadIntoDangling(lines)).keyBy(line => line._1)
+    lines
+  }
+
   def initialParser(input : String, sc : SparkContext) : RDD[(String, (String, util.List[String]))] = {
 
     //Read the input files and parse them.
     val lines = sc.textFile(input).filter(line => isGoodName(line)).
-    map(line => {
-    val node = bz2WikiParser(line)
-    (node.pageName, node.adjPages)
-    }).keyBy{line => line._1}
+      map(line => {
+        val node = bz2WikiParser(line)
+        (node.pageName, node.adjPages)
+      }).keyBy{line => line._1}.cache()
 
     //lines.saveAsTextFile("./parseoutput")
+
+    //val lines = sc.textFile(input).mapPartitions()
 
     // Convert the Dead nodes into Dangling nodes
     val dummyLines = lines.flatMap(line => {
@@ -59,8 +90,6 @@ object Parser {
     newArray
     }).keyBy{ line => line._1}
 
-    //dummyLines.saveAsTextFile("./dummyLines")
-
     // Convert the multiple empty list as value to single empty list
     val reducedDummyLines = dummyLines.reduceByKey((a, b) => a)
 
@@ -69,7 +98,7 @@ object Parser {
 
     val reducedAllPages = allPages.reduceByKey({(a, b) =>
     if(a._2.length == 0){
-    b
+      b
     }else{
       a
     }
@@ -166,6 +195,11 @@ object Parser {
     })
   }
 
+  def sortPageLocally(pages: Iterator[(String, (util.List[String], Double))]) : Iterator[(String, Double)] = {
+    val list = pages.map(line => (line._1, line._2._2)).toList
+    list.sortBy(-_._2).take(100).iterator
+  }
+
   def main(args: Array[String]): Unit = {
 
     if (args.length < 1) {
@@ -176,8 +210,9 @@ object Parser {
     val conf = new SparkConf().setAppName("PageRank").setMaster("local")
     val sc = new SparkContext(conf)
 
-    val allPages = initialParser(args(0), sc)
+    val allPages = initialParser2(args(0), sc)
 
+    println("Number of partitions :" + allPages.partitions.length)
     val nbrOfPages = sc.longAccumulator("Total Number of pages")
     allPages.foreach(x => nbrOfPages.add(1))
     val pageCount = nbrOfPages.value
@@ -205,13 +240,17 @@ object Parser {
       println("All Page Rank Sum : "+allPRSum.value)
     }
 
-    val localTop100 = allPagesWithPR.mapValues(line=>line._2).takeOrdered(100)(Ordering[Double].reverse.on(line => line._2))
-    sc.parallelize(localTop100).saveAsTextFile("./Top100")
-
+    //val top100 = allPagesWithPR.mapPartitions( lines => ).takeOrdered(100)(Ordering[Double].reverse.on(line => line._2._2))
+    //val localTop100 = allPagesWithPR
+    //sc.parallelize(top100, 1).mapValues(line => line._2).saveAsTextFile(args(1))
+    val top100 = allPagesWithPR.mapPartitions(lines => sortPageLocally(lines), preservesPartitioning = true).
+      takeOrdered(100)(Ordering[Double].reverse.on(line => line._2))
+    //val localTop100 = allPagesWithPR
+    sc.parallelize(top100, 1).saveAsTextFile(args(1))
     //val sorted = allPagesWithPR.sortByKey(ascending = false, numPartitions = 10)
     //sorted.mapValues(value => value._2).saveAsTextFile("./FinalOutput")
     //sc.parallelize(sorted.mapValues(value => value._2).take(100)).saveAsTextFile("./Top100")
-    sys.exit(0)
+    //sys.exit(0)
   }
 
 }
