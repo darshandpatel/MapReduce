@@ -37,69 +37,6 @@ public class Bz2WikiParser implements Serializable {
         questionPattern = Pattern.compile("^[? ]*$");
     }
 
-    public static boolean goodPageName(String lineStr){
-
-        int delimLoc = lineStr.indexOf(':');
-        String pageName = lineStr.substring(0, delimLoc);
-        Matcher matcher = namePattern.matcher(pageName);
-        Matcher questionMatcher = questionPattern.matcher(pageName);
-
-        //if (!matcher.find() || !specialCharMatcher.find())
-        if (!matcher.find() || questionMatcher.find()) {
-            // Skip this html file, name contains (~).
-            return false;
-        }
-        return true;
-
-    }
-
-    public static PageNode parseHTMLPage(String lineStr) throws ParserConfigurationException, SAXException{
-
-        // Configure parser
-        List<String> linkPageNames = new LinkedList<String>();
-        PageNode node = new PageNode();
-
-        SAXParserFactory spf = SAXParserFactory.newInstance();
-        spf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-        SAXParser saxParser = spf.newSAXParser();
-
-        xmlReader = saxParser.getXMLReader();
-        linkPageNames = new LinkedList<String>();
-        xmlReader.setContentHandler(new WikiParser(linkPageNames));
-
-        int delimLoc = lineStr.indexOf(':');
-        String pageName = lineStr.substring(0, delimLoc);
-        String html = lineStr.substring(delimLoc + 1);
-
-        // Parse page and fill list of linked pages.
-        try {
-            html = html.replace("&", "&amp;");
-            xmlReader.parse(new InputSource(new StringReader(html)));
-        } catch (Exception e) {
-            // Discard ill-formatted pages.
-            linkPageNames.clear();
-        }
-        Set<String> pageNamesSet = new HashSet<String>(linkPageNames);
-        // Remove source page name from its adjacency list if exists.
-        pageNamesSet.remove(pageName);
-        linkPageNames = new LinkedList<String>(pageNamesSet);
-
-        /*
-        StringBuilder strBuilder = new StringBuilder();
-        for(String value: linkPageNames){
-            strBuilder.append(value+",");
-        }
-        if(strBuilder.length() > 1) {
-            strBuilder.deleteCharAt(strBuilder.length() - 1);
-        }
-        */
-        node.setPageName(pageName);
-        node.setAdjPages(linkPageNames);
-        //return pageName+":"+strBuilder.toString();
-        return node;
-
-    }
-
     public static void main(String[] args) {
         if (args.length != 1) {
             System.out.println("Input bz2 file required on command line.");

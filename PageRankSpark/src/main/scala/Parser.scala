@@ -17,8 +17,11 @@ import scala.collection.JavaConverters._
 /**
   * Created by Darshan on 11/1/16.
   */
+
 object Parser {
 
+
+  //This function checkes wether the given string is good page name or not.
   def isGoodName(line : String): Boolean ={
 
     val namePattern = Pattern.compile("^([^~]+)$")
@@ -37,7 +40,8 @@ object Parser {
     return true
   }
 
-
+  // This funtion parse the input Iterator of the html page string and converts then into Iterator
+  // of tuple contains page name and its adjancency page list.
   def parseInputAndConvertDeadIntoDangling(pages: Iterator[String]) : Iterator[(String, util.List[String])] ={
 
     val pageWithAdj = pages.filter(line => isGoodName(line)).
@@ -51,68 +55,52 @@ object Parser {
 
   }
 
+  // This function convert the given the given page adjacency list into the Iterator of the tuple containing
+  // adjacency page and empty adjacency list
   def makeAdjPageWithDummyAdj(page : (String, util.List[String])): Iterator[(String, util.List[String])] ={
 
     val adjPages = page._2
-
+    val emptyAdjPages =  List[String]().asJava
     val newArray = for (value <- adjPages) yield {
-      val emptyAdjPages =  List[String]().asJava
       (value, emptyAdjPages)
     }
     newArray.iterator
 
   }
 
-  def initialParser2(input : String, sc : SparkContext) : RDD[(String, (String, util.List[String]))] = {
-    val allPages = sc.textFile(input, 10).mapPartitions(lines => parseInputAndConvertDeadIntoDangling(lines)).keyBy(line => line._1)
-    val reducedAllPages = allPages.reduceByKey({(a, b) =>
-      if(a._2.length == 0){
-        b
-      }else{
-        a
-      }
-    })
-    reducedAllPages
+  // This function parse the input file and convert it into the pairwise RDD in which key is page name and value is (page name, adjacency list)
+  def initialParser(input : String, fixPartitioner : Boolean, nbrOfPartitioner : Int, sc : SparkContext) : RDD[(String, (String, util.List[String]))] = {
+
+    // If we want to fix the partitioner number while reading the input file
+    if(fixPartitioner){
+      val allPages = sc.textFile(input, nbrOfPartitioner).mapPartitions(lines => parseInputAndConvertDeadIntoDangling(lines)).keyBy(line => line._1)
+      // As dead node are converted into the dandling node, there would be multiple adjacency list for each page.
+      // Below code will reduce them to one adjacency list the preference would be given to non empty list.
+      val reducedAllPages = allPages.reduceByKey({(a, b) =>
+        if(a._2.length == 0){
+          b
+        }else{
+          a
+        }
+      })
+      reducedAllPages.persist()
+    }else {
+      val allPages = sc.textFile(input).mapPartitions(lines => parseInputAndConvertDeadIntoDangling(lines)).keyBy(line => line._1)
+      // As dead node are converted into the dandling node, there would be multiple adjacency list for each page.
+      // Below code will reduce them to one adjacency list the preference would be given to non empty list.
+      val reducedAllPages = allPages.reduceByKey({ (a, b) =>
+        if (a._2.length == 0) {
+          b
+        } else {
+          a
+        }
+      })
+      reducedAllPages.persist()
+    }
   }
 
-  def initialParser(input : String, sc : SparkContext) : RDD[(String, (String, util.List[String]))] = {
-
-    //Read the input files and parse them.
-    val lines = sc.textFile(input).filter(line => isGoodName(line)).
-      map(line => {
-        val node = bz2WikiParser(line)
-        (node.pageName, node.adjPages)
-      }).keyBy{line => line._1}.cache()
-
-    //lines.saveAsTextFile("./parseoutput")
-
-    // Convert the Dead nodes into Dangling nodes
-    val dummyLines = lines.flatMap(line => {
-    val adjPages = line._2._2
-    //adjPages.asScala.toList.foreach(page => (page, emptyAdjPages))
-    val newArray = for (value <- adjPages) yield {
-    val emptyAdjPages =  List[String]().asJava
-    (value, emptyAdjPages)
-    }
-    newArray
-    }).keyBy{ line => line._1}
-
-    // Convert the multiple empty list as value to single empty list
-    val reducedDummyLines = dummyLines.reduceByKey((a, b) => a)
-
-    // Union the all the pages with initially parsed pages.
-    val allPages = lines.union(reducedDummyLines)
-
-    val reducedAllPages = allPages.reduceByKey({(a, b) =>
-    if(a._2.length == 0){
-      b
-    }else{
-      a
-    }
-    })
-    reducedAllPages
-  }
-
+  // This function applies the BZ2 parser to the given string and returns the node containing page name
+  // and its adjacency list.
   def bz2WikiParser(line : String): Node ={
     // Configure parser
     var linkPageNames: util.List[String] = new util.LinkedList[String]
@@ -149,22 +137,27 @@ object Parser {
     node
   }
 
+  // This function performs the task to distribute the page rank of the page to its adjacency pages
   def distributePageRank(pageInfo : RDD[(String, (util.List[String], Double))]): RDD[(String, (String, Double))]={
 
     val prDistribution = pageInfo.flatMap( value => {
       val adjPages = value._2._1
       val pageRank = value._2._2
       val adjPageCount = adjPages.length
+      // Convert adjacency page list into tuple containing adjacency page name and page rank contribution to it
       val pageRankDist = for (adjPage <- adjPages) yield {
         (adjPage, pageRank/adjPageCount)
       }
       pageRankDist
-    }).keyBy{line => line._1}
+    }).keyBy{line => line._1} // Page Name is used as Key
 
+    // Apply reduceBy to some the page rank contribution for the page
     val reducedPRDistribution = prDistribution.reduceByKey({(a, b) => (a._1, a._2+b._2)})
     reducedPRDistribution
   }
 
+  // This function calculates the new page rank for the all pages from the page rank contribution and sum of
+  // dangling node page rank.
   def calculateNewPageRank(distAdjPagePR : RDD[(String, (String, Double))],
                            allPages : RDD[(String, (util.List[String], Double))],
                            pageCount : Long,
@@ -173,9 +166,11 @@ object Parser {
                            dangPRSum : DoubleAccumulator,
                            allPRSum : DoubleAccumulator) : RDD[(String, (util.List[String], Double))] ={
 
+    // Join all page RDD with the RDD which contains page rank contribution for the each page
     val pagesWithContributionPR = allPages.leftOuterJoin(distAdjPagePR)
     val alpha = 0.15d
 
+    // Apply map function on RDD generated by join operation to calculate new page rank.
     val newPagePR = pagesWithContributionPR.mapValues( value => {
 
       val adjPages = value._1._1
@@ -183,10 +178,13 @@ object Parser {
       val prContribSum = value._2
       var newPageRank = 0.0
       if(prContribSum != None){
+        // New Page Rank equation
         newPageRank = (alpha/pageCount) + (1-alpha)*(prContribSum.get._2 + (delta/pageCount))
       }else{
+        // If the contribution of this page is zero.
         newPageRank = (alpha/pageCount) + (1-alpha)*(delta/pageCount)
       }
+      // Increment the same of dangling node page rank sum.
       if(adjPages.size() == 0){
         dangPRSum.add(newPageRank)
       }
@@ -202,64 +200,73 @@ object Parser {
     })
   }
 
+  // This function sort the given Iterator and returns only top 100 values in the form of Iterator.
   def sortPageLocally(pages: Iterator[(String, (util.List[String], Double))]) : Iterator[(String, Double)] = {
     val list = pages.map(line => (line._1, line._2._2)).toList
+    //Sort by Double (Page Rank Value)
     list.sortBy(-_._2).take(100).iterator
   }
 
   def main(args: Array[String]): Unit = {
 
-    if (args.length < 1) {
+    if (args.length < 2) {
       System.err.println("Usage: SparkPageRank <file/folder>")
       System.exit(1)
+    }
+
+    var fixPartitioner = false
+    var nbrOfPartitioner = 0
+    var input = args(0)
+    var output = args(1)
+    if(args.length >= 3){
+      fixPartitioner = true
+      nbrOfPartitioner = args(2).toInt
     }
 
     val conf = new SparkConf().setAppName("PageRank").setMaster("local")
     val sc = new SparkContext(conf)
 
-    val allPages = initialParser2(args(0), sc)
+    // Parse the input and generate pairwise RDD
+    val allPages = initialParser(input, fixPartitioner, nbrOfPartitioner, sc)
 
     println("Number of partitions :" + allPages.partitions.length)
+    // Calculate total number of pages in the source data to give initial page rank.
     val nbrOfPages = sc.longAccumulator("Total Number of pages")
     allPages.foreach(x => nbrOfPages.add(1))
     val pageCount = nbrOfPages.value
 
+    // Assign initial page rank to all the pages.
     var allPagesWithPR = allPages.mapValues(value => (value._2, 1.0/pageCount))
-
-    //println(distAdjPagePR.count())
-    //allPagesWithPR.mapValues(value => value._2).saveAsTextFile("./InitialPageRank")
 
     // At First Iteration sum of dangling node page rank is zero
     var delta : Double = 0.0
 
+    // Page Rank Iteration
     for(i <- 1 to 10) {
 
+      // Accumulators
       val dangPRSum = sc.doubleAccumulator("Sum Of Dangling Node Page Rank")
       val allPRSum = sc.doubleAccumulator("Sum of All Page Rank")
 
-      println("Iteration Number :" + i)
+      // First Distribute the page rank.
       val distAdjPagePR = distributePageRank(allPagesWithPR)
-      //distAdjPagePR.saveAsTextFile("./DistributedPageRank")
+      // Calculate New Page Rank
       allPagesWithPR = calculateNewPageRank(distAdjPagePR, allPagesWithPR, pageCount, delta, sc, dangPRSum, allPRSum)
+      // Force the evalution to make accumulator work
       evaluate(allPagesWithPR)
       delta = dangPRSum.value
+
+      println("Iteration Number :" + i)
       println("Danging node page rank sum : "+delta)
       println("All Page Rank Sum : "+allPRSum.value)
+
     }
 
-    //val top100 = allPagesWithPR.mapPartitions( lines => ).takeOrdered(100)(Ordering[Double].reverse.on(line => line._2._2))
-    //val localTop100 = allPagesWithPR
-    //sc.parallelize(top100, 1).mapValues(line => line._2).saveAsTextFile(args(1))
+    // Find the top 100 records.
     val top100 = allPagesWithPR.mapPartitions(lines => sortPageLocally(lines), preservesPartitioning = true).
       takeOrdered(100)(Ordering[Double].reverse.on(line => line._2))
-    //val localTop100 = allPagesWithPR
-    sc.parallelize(top100, 1).saveAsTextFile(args(1))
-    //val sorted = allPagesWithPR.sortByKey(ascending = false, numPartitions = 10)
-    //sorted.mapValues(value => value._2).saveAsTextFile("./FinalOutput")
-    //sc.parallelize(sorted.mapValues(value => value._2).take(100)).saveAsTextFile("./Top100")
-    //sys.exit(0)
+    sc.parallelize(top100, 1).saveAsTextFile(output)
+
   }
 
 }
-
-case class Node(pageName : String, adjPages : util.List[String])
