@@ -41,37 +41,48 @@ public class RowMatrixMulReducer extends Reducer<LongWritable, Cell, LongWritabl
         FileStatus[] status = fs.listStatus(new Path(cacheFiles[0]));
         
         for (int i=0;i<status.length;i++){
-            BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(status[i].getPath())));
-            String line;
-            line=br.readLine();
-            while (line != null){
-            	String[] parts = line.split("\t");
-    			//System.out.println(parts[0]+" : "+parts[1]+" : "+parts[2]);
-    			if(iteration == 1){
-    				pageRank.put(Long.parseLong(parts[1]), Double.parseDouble(parts[2]));
-    	        }else{
-    	        	pageRank.put(Long.parseLong(parts[0]), Double.parseDouble(parts[1]));
-    	        }
-            }
-            br.close();
+        	Path path = status[i].getPath();
+        	System.out.println("Check path :" + path.toString());
+        	if(!path.toString().contains(".") && ! path.toString().contains("_SUCCESS")){
+        		System.out.println("Okay path :" + path.toString());
+	            BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(path)));
+	            String line;
+	            while ((line = br.readLine()) != null){
+	            	
+	            	String[] parts = line.split("\t");
+	    			//System.out.println(parts[0]+" : "+parts[1]+" : "+parts[2]);
+	    			if(iteration == 1){
+	    				pageRank.put(Long.parseLong(parts[1]), Double.parseDouble(parts[2]));
+	    	        }else{
+	    	        	pageRank.put(Long.parseLong(parts[0]), Double.parseDouble(parts[1]));
+	    	        }
+	            }
+	            br.close();
+        	}
         }
+        
+        System.out.println("******PageRank Map size : "+pageRank.size());
         
         status = fs.listStatus(new Path(cacheFiles[1]));
         
         for (int i=0;i<status.length;i++){
-            BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(status[i].getPath())));
+        	Path path = status[i].getPath();
+        	System.out.println("Check 2nd path :" + path.toString());
+            BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(path)));
             String line;
-            line=br.readLine();
-            while (line != null){
+            while ((line = br.readLine()) != null){
             	String[] parts = line.split("\t");
-            	Double rank = pageRank.get(Long.parseLong(parts[0]));
+            	Long danglingPageId = Long.parseLong(parts[1]);
+            	Double rank = pageRank.get(danglingPageId);
             	if(rank == null){
-            		rank = 12d;
+            		rank = pageRank.get(Constant.DUMMY_LONG_ID);
             	}
-            	mrMulRowValue += (Double.parseDouble(parts[1]) * rank);
+            	mrMulRowValue += ((1d/pageCount * rank));
             }
             br.close();
         }
+        
+        System.out.println("mrMulRowValue : "+mrMulRowValue);
         
 	}
 	
@@ -79,15 +90,17 @@ public class RowMatrixMulReducer extends Reducer<LongWritable, Cell, LongWritabl
             Context context) throws IOException, InterruptedException {
 		
 		Double newPageRank = 0d;
+		Double pageRankContrSum = 0d;
 		
 		for(Cell cell : matrixCells){
 			Double prValue = pageRank.get(cell.getColumn());
 			if(prValue != null){
-				newPageRank += cell.getContribution() * prValue;
+				pageRankContrSum += cell.getContribution() * prValue;
 			}else{
-				newPageRank += cell.getContribution() * pageRank.get(Constant.DUMMY_LONG_ID);
+				pageRankContrSum += cell.getContribution() * pageRank.get(Constant.DUMMY_LONG_ID);
 			}
 		}
+		newPageRank = alpha/pageCount + (1-alpha)*(pageRankContrSum + mrMulRowValue);
 		udpatedPageRank.set(newPageRank);
 		context.write(key, udpatedPageRank);
 	}

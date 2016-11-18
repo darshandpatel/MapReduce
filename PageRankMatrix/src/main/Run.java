@@ -51,8 +51,23 @@ public class Run {
         
         conf.setInt(Constant.ITERATION, 1);
         conf.setDouble(Constant.ALPHA, 0.15d);
-        //pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT, outputParentFolder+Constant.DATA+"1", 
-        //		outputParentFolder, 1, conf);
+        int iteration;
+        for (iteration = 1; iteration <= 10; iteration++) {
+            conf.setInt(Constant.ITERATION, iteration);
+            String inputPath;
+            
+            inputPath = "data" + (iteration - 1);
+            // First interation, source data is output of Number Calcuation Job.
+            if (iteration == 1) {
+                inputPath = Constant.NUMBER_OUTPUT;
+            }
+
+            Job pageRankJob = pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT, Constant.TMP_DIR+Constant.DATA+iteration, 
+            		outputParentFolder, iteration, conf);
+
+        }
+        
+        Job top100 = Run.top100(Constant.TMP_DIR+Constant.DATA+(iteration-1), otherArgs[1], conf);
     }
 
     /**
@@ -120,8 +135,8 @@ public class Run {
 		job.setMapperClass(RowMatrixBuildMapper.class);
 		job.setReducerClass(Reducer.class);
 		
-		job.setMapOutputKeyClass(LongWritable.class);
-		job.setMapOutputValueClass(Cell.class);
+		//job.setMapOutputKeyClass(LongWritable.class);
+		//job.setMapOutputValueClass(Cell.class);
 		
 		job.setOutputKeyClass(LongWritable.class);
 		job.setOutputValueClass(Cell.class);
@@ -159,12 +174,15 @@ public class Run {
 			URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
 			job.addCacheFile(cacheFile);
 		}else{
-			Path path = new Path(outputParentFolder+Constant.DATA+(iteration-1));
+			Path path = new Path(Constant.TMP_DIR+Constant.DATA+(iteration-1));
 			job.addCacheFile(path.toUri());
 		}
+		Path danglingNodePath = new Path(Constant.TMP_DIR+Constant.ID_OUTPUT);
+		URI danglingNodeFile = new URI(danglingNodePath.toString()+"/"+Constant.DANGLING_MO+"-r-00000");
+		job.addCacheFile(danglingNodeFile);
 		
 		job.setInputFormatClass(SequenceFileInputFormat.class);
-		job.setOutputFormatClass(SequenceFileOutputFormat.class);
+		//job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		
 		FileInputFormat.addInputPath(job, new Path(inputPath));
 		FileOutputFormat.setOutputPath(job, new Path(outputPath));
@@ -172,5 +190,36 @@ public class Run {
 		job.waitForCompletion(true);
 		return job;
 		
+	}
+    
+    public static Job top100(String inputPath, String outputPath,
+            Configuration conf) throws IOException, ClassNotFoundException, InterruptedException, URISyntaxException {
+
+		Job job = Job.getInstance(conf, "Top 100");
+		job.setJarByClass(Run.class);
+		job.setMapperClass(TopMapper.class);
+		//job.setMapperClass(SampleMapper.class);
+		job.setReducerClass(TopReducer.class);
+		//job.setReducerClass(SampleReducer.class);
+		job.setSortComparatorClass(DoubleComparator.class);
+		
+		job.setMapOutputKeyClass(DoubleWritable.class);
+		job.setMapOutputValueClass(LongWritable.class);
+		
+		Path path = new Path(Constant.TMP_DIR+Constant.ID_OUTPUT);
+		URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
+		job.addCacheFile(cacheFile);
+		
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(DoubleWritable.class);
+		
+		job.setNumReduceTasks(1);
+		//job.setInputFormatClass(SequenceFileInputFormat.class);
+		
+		FileInputFormat.addInputPath(job, new Path(inputPath));
+		FileOutputFormat.setOutputPath(job, new Path(outputPath));
+		
+		job.waitForCompletion(true);
+		return job;
 	}
 }

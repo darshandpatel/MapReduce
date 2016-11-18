@@ -12,6 +12,12 @@ public class Cell implements WritableComparable<Cell>{
 	Long column;
 	Double contribution;
 	
+	public Cell(){
+		row = 0l;
+		column = 0l;
+		contribution = 0d;
+	}
+	
 	@Override
 	public void write(DataOutput out) throws IOException {
 		// TODO Auto-generated method stub

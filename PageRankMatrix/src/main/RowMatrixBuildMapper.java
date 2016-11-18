@@ -16,6 +16,7 @@ public class RowMatrixBuildMapper extends Mapper<Text, Node, LongWritable, Cell>
 	
 	HashMap<String, Long> idMap;
 	LongWritable row = new LongWritable();
+	Text sampleText = new Text("abc");
 	Cell cell = new Cell();
 	
 	public void setup(Context context) throws IOException{
@@ -43,8 +44,8 @@ public class RowMatrixBuildMapper extends Mapper<Text, Node, LongWritable, Cell>
 		for(Text adjPage : value.getAdjacencyNodes()){
 			cell.setColumn(idMap.get(adjPage.toString()));
 			cell.setContribution(1d/size);
-			System.out.println("Works perfectly fine : " + row + cell);
-			//context.write(row, cell);
+			//System.out.println("Works perfectly fine : " + row + cell);
+			context.write(row, cell);
 		}
 		
 	}
