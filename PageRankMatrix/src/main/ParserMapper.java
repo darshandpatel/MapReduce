@@ -91,6 +91,7 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
             } catch (Exception e) {
                 // Discard ill-formatted pages.
                 linkPageNames.clear();
+                return;
             }
             Set<String> pageNamesSet = new HashSet<String>(linkPageNames);
             // Remove source page name from its adjacency list if exists.

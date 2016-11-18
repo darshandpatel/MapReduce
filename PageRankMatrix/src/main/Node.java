@@ -20,23 +20,22 @@ import org.apache.hadoop.io.WritableComparable;
  */
 public class Node implements WritableComparable<Node> {
 
-    private double pageRank;
-    private double pageRankContribution;
-    private boolean isOnlyPageRankContribution;
+	private String pageName = "";
+    private boolean isDangling;
     private List<Text> adjacencyNodes;
 
     public Node() {
         this.adjacencyNodes = new LinkedList<Text>();
-        this.isOnlyPageRankContribution = false;
+        this.isDangling = false;
     }
 
-    public Node(boolean isOnlyPageRankContribution) {
+    public Node(boolean isDangling) {
         this.adjacencyNodes = new LinkedList<Text>();
-        this.isOnlyPageRankContribution = isOnlyPageRankContribution;
+        this.isDangling = isDangling;
     }
 
     public Node(List<String> adjacencyNodes) {
-        this.isOnlyPageRankContribution = false;
+        this.isDangling = false;
         this.adjacencyNodes = new LinkedList<Text>();
         for (String value : adjacencyNodes) {
             this.adjacencyNodes.add(new Text(value));
@@ -45,9 +44,8 @@ public class Node implements WritableComparable<Node> {
 
     public void write(DataOutput out) throws IOException {
         // TODO Auto-generated method stub
-        out.writeBoolean(isOnlyPageRankContribution);
-        out.writeDouble(pageRankContribution);
-        out.writeDouble(pageRank);
+    	out.writeUTF(pageName);
+        out.writeBoolean(isDangling);
         out.writeInt(adjacencyNodes.size());
         for (Text node : adjacencyNodes) {
             node.write(out);
@@ -56,9 +54,8 @@ public class Node implements WritableComparable<Node> {
 
     public void readFields(DataInput in) throws IOException {
         // TODO Auto-generated method stub
-        isOnlyPageRankContribution = in.readBoolean();
-        pageRankContribution = in.readDouble();
-        pageRank = in.readDouble();
+    	pageName = in.readUTF();
+    	isDangling = in.readBoolean();
         int length = in.readInt();
         adjacencyNodes = new LinkedList<Text>();
         for (int i = 0; i < length; i++) {
@@ -70,20 +67,12 @@ public class Node implements WritableComparable<Node> {
     }
 
     public String toString() {
-        return (Double.toString(pageRank) + " : " + adjacencyNodes.toString());
+        return (adjacencyNodes.toString());
     }
 
     public int compareTo(Node o) {
         // TODO Auto-generated method stub
         return 0;
-    }
-
-    public double getPageRank() {
-        return this.pageRank;
-    }
-
-    public void setPageRank(double pageRank) {
-        this.pageRank = pageRank;
     }
 
     public List<Text> getAdjacencyNodes() {
@@ -102,21 +91,20 @@ public class Node implements WritableComparable<Node> {
         }
     }
 
-    public boolean isOnlyPageRankContribution() {
-        return isOnlyPageRankContribution;
+    public boolean isDangling() {
+        return this.isDangling;
     }
 
-    public void setIsOnlyPageRankContribution(boolean isOnlyPageRankContribution) {
-        this.isOnlyPageRankContribution = isOnlyPageRankContribution;
+    public void setIsDangling(boolean isDangling) {
+        this.isDangling = isDangling;
     }
 
-    public double getPageRankContribution() {
-        return pageRankContribution;
-    }
+	public String getPageName() {
+		return pageName;
+	}
 
-    public void setPageRankContribution(double pageRankContribution) {
-        this.pageRankContribution = pageRankContribution;
-    }
-
+	public void setPageName(String pageName) {
+		this.pageName = pageName;
+	}
 
 }

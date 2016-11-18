@@ -11,4 +11,4 @@ run:
 
 # Clean the build
 clean:
-	rm -rf output .gradle PageRankMatrix.jar parsing  
+	rm -rf output .gradle PageRankMatrix.jar parsing ~/tmp/id id matrix
