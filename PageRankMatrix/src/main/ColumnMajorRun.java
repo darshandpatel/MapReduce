@@ -199,6 +199,19 @@ public class ColumnMajorRun {
 		sumJob.setOutputKeyClass(LongWritable.class);
 		sumJob.setOutputValueClass(DoubleWritable.class);
 		sumJob.setInputFormatClass(SequenceFileInputFormat.class);
+		
+		if(iteration == 1){
+			Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
+			URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
+			sumJob.addCacheFile(cacheFile);
+		}else{
+			Path path = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1));
+			sumJob.addCacheFile(path.toUri());
+		}
+		Path danglingNodePath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
+		URI danglingNodeFile = new URI(danglingNodePath.toString()+"/"+Constant.DANGLING_MO+"-r-00000");
+		sumJob.addCacheFile(danglingNodeFile);
+		
 		FileInputFormat.addInputPath(sumJob, new Path(outputPath+"temp"));
 		FileOutputFormat.setOutputPath(sumJob, new Path(outputPath));
 		

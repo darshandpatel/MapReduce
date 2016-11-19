@@ -17,7 +17,6 @@ public class ColumnRankMatrixMapper extends Mapper<Object, Text, Cell, Cell>{
 	public void setup(Context context){
 		Configuration conf =  context.getConfiguration();
 		iteration = conf.getInt(Constant.ITERATION, -10);
-		System.out.println("Within the rank mapper *********************************************************");
 	}
 	
 	public void map(Object object, Text text, Context context) throws IOException, InterruptedException {
