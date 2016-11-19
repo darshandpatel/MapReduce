@@ -1,7 +1,6 @@
 package main;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DoubleWritable;
@@ -29,15 +28,12 @@ public class ColumnMatrixMulReducer extends Reducer<Cell, Cell, LongWritable, Do
 		
 		Double currentPageRank = 0d;
 		boolean first = true;
-		boolean deadNode = true;
 		for(Cell cell : values){
 			
 			if(first){
 				currentPageRank = cell.getPageRank();
-				//System.out.println(" Current Page Rank : "+currentPageRank);
 				first = false;
 			}else{
-				deadNode = false;
 				pageRankContribution.set(cell.getContribution() * currentPageRank);
 				index.set(cell.getIndex());
 				//System.out.print("PRContribution : " + cell.getContribution() * currentPageRank);
@@ -45,11 +41,9 @@ public class ColumnMatrixMulReducer extends Reducer<Cell, Cell, LongWritable, Do
 			}
 		}
 		//System.out.println("");
-		if(deadNode){
-			pageRankContribution.set(0l);
-			index.set(key.getIndex());
-			context.write(index, pageRankContribution);
-		}
+		pageRankContribution.set(0l);
+		index.set(key.getIndex());
+		context.write(index, pageRankContribution);
 		
 	}
 

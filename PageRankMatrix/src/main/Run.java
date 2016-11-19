@@ -36,6 +36,7 @@ public class Run {
         // Parsing Job parses the source data and converts into source and its adjacency list format
         int lastIndex = otherArgs[1].lastIndexOf("/");
         String outputParentFolder = otherArgs[1].substring(0, lastIndex+1);
+        String cacheFolder = otherArgs[2];
         
         Job parsingJob = performParsingJob(otherArgs[0], outputParentFolder+Constant.PARSING_OUTPUT, conf);
         
@@ -45,7 +46,7 @@ public class Run {
         System.out.println("Number of pages : "+pageCounter.getValue());
         
         Job assignIdJob = assignIdToPages(outputParentFolder+Constant.PARSING_OUTPUT, 
-        		Constant.TMP_DIR+Constant.ID_OUTPUT, conf);
+        		cacheFolder+"/"+Constant.ID_OUTPUT, conf);
         Job matrixBuildJob = buildMatrix(outputParentFolder+Constant.PARSING_OUTPUT, 
         		outputParentFolder+Constant.MATRIX_OUTPUT, outputParentFolder, conf);
         
@@ -68,6 +69,7 @@ public class Run {
         }
         
         Job top100 = Run.top100(Constant.TMP_DIR+Constant.DATA+(iteration-1), otherArgs[1], conf);
+        
     }
 
     /**

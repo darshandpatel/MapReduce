@@ -23,6 +23,8 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
+import main.Constant;
+
 public class ColumnMajorRun {
 
     public static void main(String args[]) throws IOException, ClassNotFoundException, InterruptedException, URISyntaxException {
@@ -37,6 +39,8 @@ public class ColumnMajorRun {
         // First perform the parsing job
         // Parsing Job parses the source data and converts into source and its adjacency list format
         int lastIndex = otherArgs[1].lastIndexOf("/");
+        String cacheFolder = otherArgs[2];
+        
         String outputParentFolder = otherArgs[1].substring(0, lastIndex+1);
         
         Job parsingJob = performParsingJob(otherArgs[0], outputParentFolder+Constant.PARSING_OUTPUT, conf);
@@ -52,7 +56,7 @@ public class ColumnMajorRun {
         
         
         Job assignIdJob = assignIdToPages(outputParentFolder+Constant.PARSING_OUTPUT, 
-        		Constant.TMP_DIR+Constant.ID_OUTPUT, conf);
+        		cacheFolder+"/"+Constant.ID_OUTPUT, conf);
         
         Job matrixBuildJob = buildMatrix(outputParentFolder+Constant.PARSING_OUTPUT, 
         		outputParentFolder+Constant.MATRIX_OUTPUT, outputParentFolder, conf);
@@ -64,14 +68,14 @@ public class ColumnMajorRun {
         
         
         int iteration;
-        for (iteration = 1; iteration <= 10; iteration++) {
+        for (iteration = 1; iteration <= 1; iteration++) {
             conf.setInt(Constant.ITERATION, iteration);
-            Job pageRankJob = pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT, Constant.TMP_DIR+Constant.DATA+iteration, 
-            		outputParentFolder, iteration, conf);
+            Job pageRankJob = pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT, 
+            		cacheFolder+"/"+Constant.DATA+iteration, 
+            		cacheFolder+"/", iteration, conf);
         }
         
         Job top100 = ColumnMajorRun.top100(Constant.TMP_DIR+Constant.DATA+(iteration-1), otherArgs[1], conf);
-        
         
     }
 
@@ -159,7 +163,7 @@ public class ColumnMajorRun {
 		
 	}
     
-    public static Job pageRankIteration(String inputPath, String outputPath, String outputParentFolder, int iteration,
+    public static Job pageRankIteration(String inputPath, String outputPath, String cacheFolder, int iteration,
             Configuration conf) throws IOException, ClassNotFoundException, InterruptedException, URISyntaxException {
 
 		Job job = Job.getInstance(conf, "Iteration Job");
@@ -174,9 +178,9 @@ public class ColumnMajorRun {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		Path rankFilepath;
 		if(iteration == 1){
-			rankFilepath= new Path(Constant.TMP_DIR+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"-r-00000");
+			rankFilepath= new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"-r-00000");
 		}else{
-			rankFilepath = new Path(Constant.TMP_DIR+Constant.DATA+(iteration-1));
+			rankFilepath = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1));
 		}
 		
 		MultipleInputs.addInputPath(job, rankFilepath, TextInputFormat.class, ColumnRankMatrixMapper.class);
