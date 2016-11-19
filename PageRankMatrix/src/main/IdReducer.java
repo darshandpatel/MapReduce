@@ -20,7 +20,7 @@ public class IdReducer extends Reducer<Text, Node, Text, Text> {
 		id = 1;
 		Configuration conf = context.getConfiguration();
 		pageCount = conf.getLong(Constant.PAGE_COUNT, -10);
-		multipleOutputs = new MultipleOutputs(context);
+		multipleOutputs = new MultipleOutputs<Text, Text>(context);
 	}
 	
 	public void reduce(Text key, Iterable<Node> pages,
@@ -31,9 +31,11 @@ public class IdReducer extends Reducer<Text, Node, Text, Text> {
 			if(page.isDangling()){
 				danglingId.set(Long.toString(id));
 				multipleOutputs.write(Constant.DANGLING_MO, page.getPageName(), danglingId);
+				//Constant.DANGLING_MO+"/"+Constant.DANGLING_MO
 			}
 			idPlusRank.set(id+"\t"+(1d/pageCount));
 			multipleOutputs.write(Constant.IDS_MO, page.getPageName(), idPlusRank);
+			//Constant.IDS_MO+"/"+Constant.IDS_MO
 			id++;
 		}
 	}

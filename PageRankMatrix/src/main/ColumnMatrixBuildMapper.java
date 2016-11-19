@@ -11,13 +11,14 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
-public class RowMatrixBuildMapper extends Mapper<Text, Node, LongWritable, Cell>{
+public class ColumnMatrixBuildMapper extends Mapper<Text, Node, Cell, Cell>{
 	
 	HashMap<String, Long> idMap;
-	LongWritable row = new LongWritable();
+	LongWritable column = new LongWritable();
 	Text sampleText = new Text("abc");
 	CellArray cellArray = new CellArray();
-	Cell cell = new Cell();
+	Cell valueCell = new Cell();
+	Cell keyCell = new Cell();
 	
 	public void setup(Context context) throws IOException{
 		
@@ -41,28 +42,15 @@ public class RowMatrixBuildMapper extends Mapper<Text, Node, LongWritable, Cell>
 		
 		int size = value.getAdjacencyNodes().size();
 		//List<Cell> cellList = new ArrayList<Cell>();
-		cell.setIndex(idMap.get(key.toString()));
+		keyCell.setIndex(idMap.get(key.toString()));
 		for(Text adjPage : value.getAdjacencyNodes()){
 			//Cell cell = new Cell();
-			row.set(idMap.get(adjPage.toString()));
-			cell.setContribution(1d/size);
+			valueCell.setIndex(idMap.get(adjPage.toString()));
+			//cell.setColumn(idMap.get(adjPage.toString()));
+			valueCell.setContribution(1d/size);
 			//cellList.add(cell);
-			context.write(row, cell);
+			context.write(keyCell, valueCell);
 			//System.out.println("Works perfectly fine : " + row + cell);
 		}
-		//context.write(row, cell);
-		//cellArray.setCells(cellList);
-		//context.write(row, cellArray);
-	}
-}
-
-class PrintRowMatrixBuildMapper extends Mapper<LongWritable, Cell, LongWritable, Text>{
-	
-	Text returnText = new Text();
-	public void map(LongWritable key, Cell value, Context context) throws IOException, InterruptedException {
-		System.out.println("**********************************");
-		String strReturn = new String(value.getIndex() + " : "+value.getContribution());
-		returnText.set(strReturn);
-		context.write(key, returnText);
 	}
 }

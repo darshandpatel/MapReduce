@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.hadoop.conf.Configuration;
@@ -39,7 +38,7 @@ public class RowMatrixMulReducer extends Reducer<LongWritable, Cell, LongWritabl
 		URI[] cacheFiles = context.getCacheFiles();
 		FileSystem fs = FileSystem.get(conf);
         FileStatus[] status = fs.listStatus(new Path(cacheFiles[0]));
-        
+        // Read Page Id and Its Rank
         for (int i=0;i<status.length;i++){
         	Path path = status[i].getPath();
         	System.out.println("Check path :" + path.toString());
@@ -61,10 +60,11 @@ public class RowMatrixMulReducer extends Reducer<LongWritable, Cell, LongWritabl
         	}
         }
         
-        System.out.println("******PageRank Map size : "+pageRank.size());
+        System.out.println("****** PageRank Map size : "+pageRank.size());
         
         status = fs.listStatus(new Path(cacheFiles[1]));
-        
+        // Read dangling node page Id
+        int danglingNodes = 0;
         for (int i=0;i<status.length;i++){
         	Path path = status[i].getPath();
         	System.out.println("Check 2nd path :" + path.toString());
@@ -78,36 +78,45 @@ public class RowMatrixMulReducer extends Reducer<LongWritable, Cell, LongWritabl
             		rank = pageRank.get(Constant.DUMMY_LONG_ID);
             	}
             	mrMulRowValue += ((1d/pageCount * rank));
+            	//danglingNodePageRankSum += rank;
+            	danglingNodes++;
             }
             br.close();
         }
         
+        System.out.println("Dangling Nodes : "+danglingNodes);
         System.out.println("mrMulRowValue : "+mrMulRowValue);
         
 	}
 	
-	public void reduce(LongWritable key, Iterable<Cell> matrixCells,
+	public void reduce(LongWritable key, Iterable<Cell> values,
             Context context) throws IOException, InterruptedException {
 		
 		Double newPageRank = 0d;
 		Double pageRankContrSum = 0d;
-		
-		for(Cell cell : matrixCells){
-			Double prValue = pageRank.get(cell.getColumn());
+		int length = 0;
+		//System.out.print("pageRankContrSum:");
+		for(Cell cell : values){
+			Double prValue = pageRank.get(cell.getIndex());
 			if(prValue != null){
-				pageRankContrSum += cell.getContribution() * prValue;
+				pageRankContrSum += (cell.getContribution() * prValue);
 			}else{
-				pageRankContrSum += cell.getContribution() * pageRank.get(Constant.DUMMY_LONG_ID);
+				pageRankContrSum += (cell.getContribution() * pageRank.get(Constant.DUMMY_LONG_ID));
 			}
+			length++;
+			//System.out.print(pageRankContrSum+":");
 		}
-		newPageRank = alpha/pageCount + (1-alpha)*(pageRankContrSum + mrMulRowValue);
+		//System.out.println("");
+		newPageRank = ((alpha/pageCount) + (1-alpha)*(pageRankContrSum + mrMulRowValue));
 		udpatedPageRank.set(newPageRank);
+		//System.out.println("row id: "+ key + " Adj list :"+length + " Page Rank Contrib Sum : "+
+		//pageRankContrSum + " alpha : "+alpha + " newPageRank :"+newPageRank + " mrMulRowValue : "+mrMulRowValue);
 		context.write(key, udpatedPageRank);
 	}
 
 	public void cleanup(Context context) throws IOException, InterruptedException{
 		row.set(Constant.DUMMY_LONG_ID);
-		udpatedPageRank.set((alpha/pageCount) + (1-alpha)*mrMulRowValue);
+		udpatedPageRank.set((alpha/pageCount) + (1-alpha)*(mrMulRowValue));
 		context.write(row, udpatedPageRank);
 	}
 }

@@ -15,9 +15,10 @@ public class Constant {
     public static Integer POWER = 9;
     public static String TMP_DIR = "/Users/Darshan/tmp/";
     public static String DANGLING_MO = "dangling";
-    public static String IDS_MO = "Ids";
+    public static String IDS_MO = "ids";
     public static String NORMAL_DUMMY_KEY = "Dummy";
     public static Long DUMMY_LONG_ID = -1111111l;
+    public static String BASE_FILE_PATH = "baseFilePath";
 }
 
 enum COUNTERS {

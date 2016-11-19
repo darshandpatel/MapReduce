@@ -48,7 +48,7 @@ public class ParserReducer extends Reducer<Text, Node, Text, Node> {
         // For the dead and danlging node emit the value as a node with empty adjacency list.
         if(isDeadDanglingNode){
             context.write(key, emptyNode);
-            //context.getCounter(COUNTERS.NUMBER_OF_DANGLING_NODE).increment(1l);
+            context.getCounter(COUNTERS.NUMBER_OF_DANGLING_NODE).increment(1l);
         }else{
             context.write(key, normalNode);
         }
