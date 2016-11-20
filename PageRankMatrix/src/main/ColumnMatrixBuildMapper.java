@@ -33,14 +33,18 @@ public class ColumnMatrixBuildMapper extends Mapper<Text, Node, Cell, Cell>{
 		FileSystem fs = FileSystem.get(sourceFilePath.toUri(), conf);
 		FileStatus[] status = fs.listStatus(sourceFilePath);
 		for (int i=0;i<status.length;i++){
-			BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fs.open(status[i].getPath())));
-			String line = null;
-			while((line = bufferedReader.readLine()) != null){
-				String[] parts = line.split("\t");
-				//System.out.println(parts[0]+" : "+parts[1]+" : "+parts[2]);
-				idMap.put(parts[0].trim(), Long.parseLong(parts[1]));
-			}
-			bufferedReader.close();
+			Path path = status[i].getPath();
+        	System.out.println("!!! Check path :" + path.toString());
+        	if(!path.toString().contains(".") && ! path.toString().contains("_SUCCESS") && !path.toString().contains("crc")){
+				BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fs.open(path)));
+				String line = null;
+				while((line = bufferedReader.readLine()) != null){
+					String[] parts = line.split("\t");
+					//System.out.println(parts[0]+" : "+parts[1]+" : "+parts[2]);
+					idMap.put(parts[0].trim(), Long.parseLong(parts[1]));
+				}
+				bufferedReader.close();
+        	}
 		}
 		System.out.println("Map size :"+idMap.size());
 	}

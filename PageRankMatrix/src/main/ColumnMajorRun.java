@@ -68,9 +68,8 @@ public class ColumnMajorRun {
         
        //printJob(outputParentFolder+Constant.MATRIX_OUTPUT, Constant.TMP_DIR+Constant.DATA+"print", conf);
         
-        
         int iteration;
-        for (iteration = 1; iteration <= 10; iteration++) {
+        for (iteration = 1; iteration <= 1; iteration++) {
             conf.setInt(Constant.ITERATION, iteration);
             Job pageRankJob = pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT+"/", 
             		cacheFolder+"/"+Constant.DATA+iteration, 
@@ -119,13 +118,15 @@ public class ColumnMajorRun {
 		Job job = Job.getInstance(conf, "Parsing Job");
 		job.setJarByClass(ColumnMajorRun.class);
 		job.setMapperClass(IdMapper.class);
-		job.setReducerClass(IdReducer.class);
+		job.setReducerClass(Reducer.class);
+		//job.setReducerClass(IdReducer.class);
 		job.setMapOutputKeyClass(Text.class);
 		job.setMapOutputValueClass(Node.class);
 		job.setInputFormatClass(SequenceFileInputFormat.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
-		job.setNumReduceTasks(1);
+		job.setPartitionerClass(PageRankPartitioner.class);
+		//job.setNumReduceTasks(1);
 		
 		MultipleOutputs.addNamedOutput(job, Constant.DANGLING_MO, TextOutputFormat.class,
 			    Text.class, Text.class);
@@ -152,9 +153,8 @@ public class ColumnMajorRun {
 		job.setOutputKeyClass(Cell.class);
 		job.setOutputValueClass(Cell.class);
 		
-		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
-		URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
-		job.addCacheFile(cacheFile);
+		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
+		job.addCacheFile(path.toUri());
 		
 		job.setInputFormatClass(SequenceFileInputFormat.class);
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
@@ -182,7 +182,7 @@ public class ColumnMajorRun {
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 		Path rankFilepath;
 		if(iteration == 1){
-			rankFilepath= new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"-r-00000");
+			rankFilepath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
 		}else{
 			rankFilepath = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1)+"/");
 		}
@@ -205,16 +205,14 @@ public class ColumnMajorRun {
 		sumJob.setInputFormatClass(SequenceFileInputFormat.class);
 		
 		if(iteration == 1){
-			Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
-			URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
-			sumJob.addCacheFile(cacheFile);
+			Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
+			sumJob.addCacheFile(path.toUri());
 		}else{
 			Path path = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1)+"/");
 			sumJob.addCacheFile(path.toUri());
 		}
-		Path danglingNodePath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
-		URI danglingNodeFile = new URI(danglingNodePath.toString()+"/"+Constant.DANGLING_MO+"-r-00000");
-		sumJob.addCacheFile(danglingNodeFile);
+		Path danglingNodePath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.DANGLING_MO+"/");
+		sumJob.addCacheFile(danglingNodePath.toUri());
 		
 		FileInputFormat.addInputPath(sumJob, new Path(outputPath+"temp/"));
 		FileOutputFormat.setOutputPath(sumJob, new Path(outputPath+"/"));
@@ -240,9 +238,8 @@ public class ColumnMajorRun {
 		job.setMapOutputKeyClass(DoubleWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
 		
-		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
-		URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
-		job.addCacheFile(cacheFile);
+		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
+		job.addCacheFile(path.toUri());
 		
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(DoubleWritable.class);
