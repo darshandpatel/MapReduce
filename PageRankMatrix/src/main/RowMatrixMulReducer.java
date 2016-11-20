@@ -77,12 +77,13 @@ public class RowMatrixMulReducer extends Reducer<LongWritable, Cell, LongWritabl
             	if(rank == null){
             		rank = pageRank.get(Constant.DUMMY_LONG_ID);
             	}
-            	mrMulRowValue += ((1d/pageCount * rank));
+            	mrMulRowValue += rank;
             	//danglingNodePageRankSum += rank;
             	danglingNodes++;
             }
             br.close();
         }
+        mrMulRowValue = mrMulRowValue * (1d/pageCount);
         
         System.out.println("Dangling Nodes : "+danglingNodes);
         System.out.println("mrMulRowValue : "+mrMulRowValue);

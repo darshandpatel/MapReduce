@@ -44,6 +44,7 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 			spf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 			SAXParser saxParser = spf.newSAXParser();
 	        xmlReader = saxParser.getXMLReader();
+	        System.out.println("ParserMapper is called");
 		} catch (SAXNotRecognizedException | SAXNotSupportedException | ParserConfigurationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -67,6 +68,7 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
 
 
         try {
+        	System.out.println("Map is called with some data");
 
             linkPageNames = new LinkedList<String>();
             xmlReader.setContentHandler(new WikiParser(linkPageNames));
@@ -88,6 +90,7 @@ public class ParserMapper extends Mapper<Object, Text, Text, Node> {
             try {
                 html = html.replace("&", "&amp;");
                 xmlReader.parse(new InputSource(new StringReader(html)));
+                System.out.println("Data :: "+linkPageNames);
             } catch (Exception e) {
                 // Discard ill-formatted pages.
                 linkPageNames.clear();

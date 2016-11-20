@@ -13,7 +13,6 @@ public class Constant {
     public static String MATRIX_OUTPUT = "matrix";
     public static String NUMBER_OUTPUT = "number";
     public static Integer POWER = 9;
-    public static String TMP_DIR = "/Users/Darshan/tmp/";
     public static String DANGLING_MO = "dangling";
     public static String IDS_MO = "ids";
     public static String NORMAL_DUMMY_KEY = "Dummy";

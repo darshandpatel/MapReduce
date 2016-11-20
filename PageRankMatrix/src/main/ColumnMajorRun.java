@@ -38,12 +38,15 @@ public class ColumnMajorRun {
 
         // First perform the parsing job
         // Parsing Job parses the source data and converts into source and its adjacency list format
+        System.out.println("Input Folder Path : " + otherArgs[0]);
         int lastIndex = otherArgs[1].lastIndexOf("/");
+        System.out.println("Cache Folder : " + otherArgs[2]);
+        System.out.println("Output Folder : " + otherArgs[1]);
         String cacheFolder = otherArgs[2];
         
         String outputParentFolder = otherArgs[1].substring(0, lastIndex+1);
         
-        Job parsingJob = performParsingJob(otherArgs[0], outputParentFolder+Constant.PARSING_OUTPUT, conf);
+        Job parsingJob = performParsingJob(otherArgs[0]+"/", outputParentFolder+Constant.PARSING_OUTPUT+"/", conf);
         
         Counter pageCounter = parsingJob.getCounters().findCounter(COUNTERS.PAGE_COUNTER);
         conf.setLong(Constant.PAGE_COUNT, pageCounter.getValue());
@@ -54,12 +57,11 @@ public class ColumnMajorRun {
         System.out.println("Number of pages : "+pageCounter.getValue());
         System.out.println("Number of dangling pages : "+nbrOfDanglingNode.getValue());
         
+        Job assignIdJob = assignIdToPages(outputParentFolder+Constant.PARSING_OUTPUT+"/", 
+        		cacheFolder+"/"+Constant.ID_OUTPUT+"/", conf);
         
-        Job assignIdJob = assignIdToPages(outputParentFolder+Constant.PARSING_OUTPUT, 
-        		cacheFolder+"/"+Constant.ID_OUTPUT, conf);
-        
-        Job matrixBuildJob = buildMatrix(outputParentFolder+Constant.PARSING_OUTPUT, 
-        		outputParentFolder+Constant.MATRIX_OUTPUT, outputParentFolder, conf);
+        Job matrixBuildJob = buildMatrix(outputParentFolder+Constant.PARSING_OUTPUT+"/", 
+        		outputParentFolder+Constant.MATRIX_OUTPUT+"/", cacheFolder, conf);
         
         conf.setInt(Constant.ITERATION, 1);
         conf.setDouble(Constant.ALPHA, 0.15d);
@@ -68,14 +70,15 @@ public class ColumnMajorRun {
         
         
         int iteration;
-        for (iteration = 1; iteration <= 1; iteration++) {
+        for (iteration = 1; iteration <= 10; iteration++) {
             conf.setInt(Constant.ITERATION, iteration);
-            Job pageRankJob = pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT, 
+            Job pageRankJob = pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT+"/", 
             		cacheFolder+"/"+Constant.DATA+iteration, 
-            		cacheFolder+"/", iteration, conf);
+            		cacheFolder, iteration, conf);
         }
         
-        Job top100 = ColumnMajorRun.top100(Constant.TMP_DIR+Constant.DATA+(iteration-1), otherArgs[1], conf);
+        Job top100 = ColumnMajorRun.top100(cacheFolder+"/"+Constant.DATA+(iteration-1)+"/", otherArgs[1]+"/", 
+        		cacheFolder, conf);
         
     }
 
@@ -96,6 +99,7 @@ public class ColumnMajorRun {
         job.setJarByClass(ColumnMajorRun.class);
         job.setMapperClass(ParserMapper.class);
         job.setReducerClass(ParserReducer.class);
+        job.setCombinerClass(ParserCombiner.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Node.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
@@ -136,10 +140,10 @@ public class ColumnMajorRun {
 		
 	}
     
-    public static Job buildMatrix(String inputPath, String outputPath, String outputParentFolder,
+    public static Job buildMatrix(String inputPath, String outputPath, String cacheFolder,
             Configuration conf) throws IOException, ClassNotFoundException, InterruptedException, URISyntaxException {
 
-		Job job = Job.getInstance(conf, "Parsing Job");
+		Job job = Job.getInstance(conf, "Build Matrix");
 		job.setJarByClass(ColumnMajorRun.class);
 		job.setMapperClass(ColumnMatrixBuildMapper.class);
 		job.setReducerClass(Reducer.class);
@@ -148,7 +152,7 @@ public class ColumnMajorRun {
 		job.setOutputKeyClass(Cell.class);
 		job.setOutputValueClass(Cell.class);
 		
-		Path path = new Path(Constant.TMP_DIR+Constant.ID_OUTPUT);
+		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
 		URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
 		job.addCacheFile(cacheFile);
 		
@@ -180,13 +184,13 @@ public class ColumnMajorRun {
 		if(iteration == 1){
 			rankFilepath= new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"-r-00000");
 		}else{
-			rankFilepath = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1));
+			rankFilepath = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1)+"/");
 		}
 		
 		MultipleInputs.addInputPath(job, rankFilepath, TextInputFormat.class, ColumnRankMatrixMapper.class);
 		MultipleInputs.addInputPath(job, new Path(inputPath), SequenceFileInputFormat.class, Mapper.class);
 		 
-		FileOutputFormat.setOutputPath(job, new Path(outputPath+"temp"));
+		FileOutputFormat.setOutputPath(job, new Path(outputPath+"temp/"));
 		
 		job.waitForCompletion(true);
 		
@@ -205,15 +209,15 @@ public class ColumnMajorRun {
 			URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
 			sumJob.addCacheFile(cacheFile);
 		}else{
-			Path path = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1));
+			Path path = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1)+"/");
 			sumJob.addCacheFile(path.toUri());
 		}
 		Path danglingNodePath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
 		URI danglingNodeFile = new URI(danglingNodePath.toString()+"/"+Constant.DANGLING_MO+"-r-00000");
 		sumJob.addCacheFile(danglingNodeFile);
 		
-		FileInputFormat.addInputPath(sumJob, new Path(outputPath+"temp"));
-		FileOutputFormat.setOutputPath(sumJob, new Path(outputPath));
+		FileInputFormat.addInputPath(sumJob, new Path(outputPath+"temp/"));
+		FileOutputFormat.setOutputPath(sumJob, new Path(outputPath+"/"));
 		
 		sumJob.waitForCompletion(true);
 		return sumJob;
@@ -222,7 +226,7 @@ public class ColumnMajorRun {
 		
 	}
     
-    public static Job top100(String inputPath, String outputPath,
+    public static Job top100(String inputPath, String outputPath, String cacheFolder,
             Configuration conf) throws IOException, ClassNotFoundException, InterruptedException, URISyntaxException {
 
 		Job job = Job.getInstance(conf, "Top 100");
@@ -236,7 +240,7 @@ public class ColumnMajorRun {
 		job.setMapOutputKeyClass(DoubleWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
 		
-		Path path = new Path(Constant.TMP_DIR+Constant.ID_OUTPUT);
+		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
 		URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
 		job.addCacheFile(cacheFile);
 		
