@@ -67,22 +67,24 @@ public class ColumnMatrixMulSumReducer extends Reducer<LongWritable, DoubleWrita
         // Read dangling node page Id
         for (int i=0;i<status.length;i++){
         	Path path = status[i].getPath();
-        	System.out.println("Check 2nd path :" + path.toString());
-            BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(path)));
-            String line;
-            while ((line = br.readLine()) != null){
-            	String[] parts = line.split("\t");
-            	Long danglingPageId = Long.parseLong(parts[1]);
-            	Double rank = pageRank.get(danglingPageId);
-            	if(rank == null){
-            		rank = pageRank.get(Constant.DUMMY_LONG_ID);
-            	}
-            	mrMulRowValue += rank;
-            }
-            br.close();
-            mrMulRowValue = (1d/pageCount) * mrMulRowValue;
+        	System.out.println("!!! Check path :" + path.toString());
+        	if(!path.toString().contains(".") && ! path.toString().contains("_SUCCESS")){
+        		System.out.println("!!! Okay path :" + path.toString());
+	            BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(path)));
+	            String line;
+	            while ((line = br.readLine()) != null){
+	            	String[] parts = line.split("\t");
+	            	Long danglingPageId = Long.parseLong(parts[1]);
+	            	Double rank = pageRank.get(danglingPageId);
+	            	if(rank == null){
+	            		rank = pageRank.get(Constant.DUMMY_LONG_ID);
+	            	}
+	            	mrMulRowValue += rank;
+	            }
+	            br.close();
+	        }
         }
-        
+        mrMulRowValue = (1d/pageCount) * mrMulRowValue;
         System.out.println("mrMulRowValue : "+mrMulRowValue);
 	}
     

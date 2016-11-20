@@ -1,4 +1,4 @@
-INPUT_FILE="/Users/Darshan/Documents/MapReduce/sample_data/wikipedia-simple-html.bz2"
+INPUT_FILE="/Users/Darshan/Documents/MapReduce/sample_data" #/wikipedia-simple-html.bz2"
 HADOOP_ROOT="/usr/local/hadoop"
 OUTPUT_FOLDER="/Users/Darshan/Desktop/MapReduce"
 CACHE_FOLDER="/Users/Darshan/tmp"
