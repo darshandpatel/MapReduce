@@ -63,13 +63,12 @@ public class ColumnMajorRun {
         Job matrixBuildJob = buildMatrix(outputParentFolder+Constant.PARSING_OUTPUT+"/", 
         		outputParentFolder+Constant.MATRIX_OUTPUT+"/", cacheFolder, conf);
         
-        conf.setInt(Constant.ITERATION, 1);
         conf.setDouble(Constant.ALPHA, 0.15d);
         
-       //printJob(outputParentFolder+Constant.MATRIX_OUTPUT, Constant.TMP_DIR+Constant.DATA+"print", conf);
+        //printJob(outputParentFolder+Constant.MATRIX_OUTPUT, Constant.TMP_DIR+Constant.DATA+"print", conf);
         
         int iteration;
-        for (iteration = 1; iteration <= 1; iteration++) {
+        for (iteration = 1; iteration <= 10; iteration++) {
             conf.setInt(Constant.ITERATION, iteration);
             Job pageRankJob = pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT+"/", 
             		cacheFolder+"/"+Constant.DATA+iteration, 
@@ -152,7 +151,7 @@ public class ColumnMajorRun {
 		job.setMapOutputValueClass(Cell.class);
 		job.setOutputKeyClass(Cell.class);
 		job.setOutputValueClass(Cell.class);
-		job.setPartitionerClass(RowColumnPartitioner.class);
+		job.setPartitionerClass(RowColumnCellPartitioner.class);
 		
 		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
 		job.addCacheFile(path.toUri());
@@ -181,7 +180,7 @@ public class ColumnMajorRun {
 		
 		job.setGroupingComparatorClass(NaturalKeyGroupingComparator.class);
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
-		job.setPartitionerClass(RowColumnPartitioner.class);
+		job.setPartitionerClass(RowColumnCellPartitioner.class);
 		Path rankFilepath;
 		if(iteration == 1){
 			rankFilepath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
@@ -205,7 +204,8 @@ public class ColumnMajorRun {
 		sumJob.setOutputKeyClass(LongWritable.class);
 		sumJob.setOutputValueClass(DoubleWritable.class);
 		sumJob.setInputFormatClass(SequenceFileInputFormat.class);
-		sumJob.setPartitionerClass(RowColumnPartitioner.class);
+		sumJob.setPartitionerClass(RowColumnIdPartitioner.class);
+		sumJob.setCombinerClass(ColumnMatrixMulSumCombiner.class);
 		
 		if(iteration == 1){
 			Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");

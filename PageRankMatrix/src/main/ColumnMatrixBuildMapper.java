@@ -18,8 +18,6 @@ public class ColumnMatrixBuildMapper extends Mapper<Text, Node, Cell, Cell>{
 	
 	HashMap<String, Long> idMap;
 	LongWritable column = new LongWritable();
-	Text sampleText = new Text("abc");
-	CellArray cellArray = new CellArray();
 	Cell valueCell = new Cell();
 	Cell keyCell = new Cell();
 	

@@ -27,6 +27,7 @@ public class ColumnMatrixMulSumReducer extends Reducer<LongWritable, DoubleWrita
 	DoubleWritable udpatedPageRank = new DoubleWritable();
 	LongWritable row = new LongWritable();
 	int iteration;
+	FileSystem fs;
 	
 	public void setup(Context context) throws IOException{
 		Configuration conf =  context.getConfiguration();
@@ -37,14 +38,16 @@ public class ColumnMatrixMulSumReducer extends Reducer<LongWritable, DoubleWrita
 		pageRank = new HashMap<Long, Double>();
 		mrMulRowValue = 0d;
 		
-		URI[] cacheFiles = context.getCacheFiles();
-		FileSystem fs = FileSystem.get(conf);
-        FileStatus[] status = fs.listStatus(new Path(cacheFiles[0]));
+        URI[] cacheFiles = context.getCacheFiles();
+		Path sourceFilePath = new Path(cacheFiles[0]);
+		fs = FileSystem.get(sourceFilePath.toUri(), conf);
+		FileStatus[] status = fs.listStatus(sourceFilePath);
+		
         // Read Page Id and Its Rank
         for (int i=0;i<status.length;i++){
         	Path path = status[i].getPath();
         	System.out.println("!!! Check path :" + path.toString());
-        	if(!path.toString().contains(".") && ! path.toString().contains("_SUCCESS")){
+        	if(!path.toString().contains(".") && ! path.toString().contains("_SUCCESS") && !path.toString().contains("crc")){
         		System.out.println("!!! Okay path :" + path.toString());
 	            BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(path)));
 	            String line;
@@ -63,12 +66,15 @@ public class ColumnMatrixMulSumReducer extends Reducer<LongWritable, DoubleWrita
         
         System.out.println("****** PageRank Map size : "+pageRank.size());
         
-        status = fs.listStatus(new Path(cacheFiles[1]));
+        Path danglingNodePath = new Path(cacheFiles[1]);
+		fs = FileSystem.get(danglingNodePath.toUri(), conf);
+		status = fs.listStatus(danglingNodePath);
+        //status = fs.listStatus(new Path(cacheFiles[1]));
         // Read dangling node page Id
         for (int i=0;i<status.length;i++){
         	Path path = status[i].getPath();
         	System.out.println("!!! Check path :" + path.toString());
-        	if(!path.toString().contains(".") && ! path.toString().contains("_SUCCESS")){
+        	if(!path.toString().contains(".") && ! path.toString().contains("_SUCCESS") && !path.toString().contains("crc")){
         		System.out.println("!!! Okay path :" + path.toString());
 	            BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(path)));
 	            String line;
@@ -76,9 +82,6 @@ public class ColumnMatrixMulSumReducer extends Reducer<LongWritable, DoubleWrita
 	            	String[] parts = line.split("\t");
 	            	Long danglingPageId = Long.parseLong(parts[1]);
 	            	Double rank = pageRank.get(danglingPageId);
-	            	if(rank == null){
-	            		rank = pageRank.get(Constant.DUMMY_LONG_ID);
-	            	}
 	            	mrMulRowValue += rank;
 	            }
 	            br.close();

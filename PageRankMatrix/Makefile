@@ -8,8 +8,11 @@ default:clean
 	cp ./build/libs/PageRankMatrix.jar .
 
 # No combiner program run
-run:
+run-column:
 	${HADOOP_ROOT}/bin/hadoop jar PageRankMatrix.jar main.ColumnMajorRun ${INPUT_FILE} ${OUTPUT_FOLDER}/output ${CACHE_FOLDER}
+
+run-row:
+	${HADOOP_ROOT}/bin/hadoop jar PageRankMatrix.jar main.RowMajorRun ${INPUT_FILE} ${OUTPUT_FOLDER}/output ${CACHE_FOLDER}
 
 # Clean the build
 clean:

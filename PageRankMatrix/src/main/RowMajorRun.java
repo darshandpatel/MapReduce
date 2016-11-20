@@ -14,7 +14,9 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
@@ -59,13 +61,12 @@ public class RowMajorRun {
         Job matrixBuildJob = buildMatrix(outputParentFolder+Constant.PARSING_OUTPUT+"/", 
         		outputParentFolder+Constant.MATRIX_OUTPUT+"/", cacheFolder, conf);
         
-        conf.setInt(Constant.ITERATION, 1);
         conf.setDouble(Constant.ALPHA, 0.15d);
         
        //printJob(outputParentFolder+Constant.MATRIX_OUTPUT, Constant.TMP_DIR+Constant.DATA+"print", conf);
         
         int iteration;
-        for (iteration = 1; iteration <= 10; iteration++) {
+        for (iteration = 1; iteration <= 1; iteration++) {
             conf.setInt(Constant.ITERATION, iteration);
             Job pageRankJob = pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT+"/", 
             		cacheFolder+"/"+Constant.DATA+iteration, 
@@ -74,6 +75,7 @@ public class RowMajorRun {
         
         Job top100 = ColumnMajorRun.top100(cacheFolder+"/"+Constant.DATA+(iteration-1)+"/", otherArgs[1]+"/", 
         		cacheFolder, conf);
+        		
     }
 
     /**
@@ -93,6 +95,7 @@ public class RowMajorRun {
         job.setJarByClass(RowMajorRun.class);
         job.setMapperClass(ParserMapper.class);
         job.setReducerClass(ParserReducer.class);
+        job.setCombinerClass(ParserCombiner.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Node.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
@@ -109,16 +112,16 @@ public class RowMajorRun {
     public static Job assignIdToPages(String inputPath, String outputPath,
             Configuration conf) throws IOException, ClassNotFoundException, InterruptedException {
 
-		Job job = Job.getInstance(conf, "Parsing Job");
-		job.setJarByClass(RowMajorRun.class);
+    	Job job = Job.getInstance(conf, "Parsing Job");
+		job.setJarByClass(ColumnMajorRun.class);
 		job.setMapperClass(IdMapper.class);
-		job.setReducerClass(IdReducer.class);
+		job.setReducerClass(Reducer.class);
 		job.setMapOutputKeyClass(Text.class);
 		job.setMapOutputValueClass(Node.class);
 		job.setInputFormatClass(SequenceFileInputFormat.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
-		job.setNumReduceTasks(1);
+		job.setPartitionerClass(PageRankPartitioner.class);
 		
 		MultipleOutputs.addNamedOutput(job, Constant.DANGLING_MO, TextOutputFormat.class,
 			    Text.class, Text.class);
@@ -140,14 +143,14 @@ public class RowMajorRun {
 		job.setJarByClass(RowMajorRun.class);
 		job.setMapperClass(RowMatrixBuildMapper.class);
 		job.setReducerClass(Reducer.class);
-		job.setMapOutputKeyClass(LongWritable.class);
+		job.setMapOutputKeyClass(Cell.class);
 		job.setMapOutputValueClass(Cell.class);
-		job.setOutputKeyClass(LongWritable.class);
+		job.setOutputKeyClass(Cell.class);
 		job.setOutputValueClass(Cell.class);
+		job.setPartitionerClass(RowColumnCellPartitioner.class);
 		
-		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
-		URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
-		job.addCacheFile(cacheFile);
+		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
+		job.addCacheFile(path.toUri());
 		
 		job.setInputFormatClass(SequenceFileInputFormat.class);
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
@@ -166,29 +169,37 @@ public class RowMajorRun {
 		Job job = Job.getInstance(conf, "Parsing Job");
 		job.setJarByClass(RowMajorRun.class);
 		//job.setMapperClass(Mapper.class);
-		job.setMapperClass(RowMatrixMulMapper.class);
+		//job.setMapperClass(RowMatrixMulMapper.class);
 		job.setReducerClass(RowMatrixMulReducer.class);
-		job.setMapOutputKeyClass(LongWritable.class);
+		
+		job.setMapOutputKeyClass(Cell.class);
 		job.setMapOutputValueClass(Cell.class);
+		
 		job.setOutputKeyClass(LongWritable.class);
 		job.setOutputValueClass(DoubleWritable.class);
+		job.setGroupingComparatorClass(NaturalKeyGroupingComparator.class);
+		job.setPartitionerClass(RowColumnCellPartitioner.class);
 		
 		if(iteration == 1){
-			Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
-			URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
-			job.addCacheFile(cacheFile);
+			Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
+			job.addCacheFile(path.toUri());
 		}else{
 			Path path = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1)+"/");
 			job.addCacheFile(path.toUri());
 		}
-		Path danglingNodePath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
-		URI danglingNodeFile = new URI(danglingNodePath.toString()+"/"+Constant.DANGLING_MO+"-r-00000");
-		job.addCacheFile(danglingNodeFile);
+		Path danglingNodePath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.DANGLING_MO+"/");
+		job.addCacheFile(danglingNodePath.toUri());
 		
-		job.setInputFormatClass(SequenceFileInputFormat.class);
-		//job.setOutputFormatClass(SequenceFileOutputFormat.class);
+		Path rankFilepath;
+		if(iteration == 1){
+			rankFilepath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
+		}else{
+			rankFilepath = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1)+"/");
+		}
 		
-		FileInputFormat.addInputPath(job, new Path(inputPath));
+		MultipleInputs.addInputPath(job, rankFilepath, TextInputFormat.class, RowRankMatrixMapper.class);
+		MultipleInputs.addInputPath(job, new Path(inputPath), SequenceFileInputFormat.class, Mapper.class);
+		
 		FileOutputFormat.setOutputPath(job, new Path(outputPath));
 		
 		job.waitForCompletion(true);
@@ -210,9 +221,8 @@ public class RowMajorRun {
 		job.setMapOutputKeyClass(DoubleWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
 		
-		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT);
-		URI cacheFile = new URI(path.toString()+"/"+Constant.IDS_MO+"-r-00000");
-		job.addCacheFile(cacheFile);
+		Path path = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
+		job.addCacheFile(path.toUri());
 		
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(DoubleWritable.class);
