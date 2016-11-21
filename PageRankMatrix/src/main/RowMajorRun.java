@@ -66,7 +66,7 @@ public class RowMajorRun {
        //printJob(outputParentFolder+Constant.MATRIX_OUTPUT, Constant.TMP_DIR+Constant.DATA+"print", conf);
         
         int iteration;
-        for (iteration = 1; iteration <= 1; iteration++) {
+        for (iteration = 1; iteration <= 10; iteration++) {
             conf.setInt(Constant.ITERATION, iteration);
             Job pageRankJob = pageRankIteration(outputParentFolder+Constant.MATRIX_OUTPUT+"/", 
             		cacheFolder+"/"+Constant.DATA+iteration, 
@@ -113,7 +113,7 @@ public class RowMajorRun {
             Configuration conf) throws IOException, ClassNotFoundException, InterruptedException {
 
     	Job job = Job.getInstance(conf, "Parsing Job");
-		job.setJarByClass(ColumnMajorRun.class);
+		job.setJarByClass(RowMajorRun.class);
 		job.setMapperClass(IdMapper.class);
 		job.setReducerClass(Reducer.class);
 		job.setMapOutputKeyClass(Text.class);
@@ -190,16 +190,8 @@ public class RowMajorRun {
 		Path danglingNodePath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.DANGLING_MO+"/");
 		job.addCacheFile(danglingNodePath.toUri());
 		
-		Path rankFilepath;
-		if(iteration == 1){
-			rankFilepath = new Path(cacheFolder+"/"+Constant.ID_OUTPUT+"/"+Constant.IDS_MO+"/");
-		}else{
-			rankFilepath = new Path(cacheFolder+"/"+Constant.DATA+(iteration-1)+"/");
-		}
-		
-		MultipleInputs.addInputPath(job, rankFilepath, TextInputFormat.class, RowRankMatrixMapper.class);
-		MultipleInputs.addInputPath(job, new Path(inputPath), SequenceFileInputFormat.class, Mapper.class);
-		
+		job.setInputFormatClass(SequenceFileInputFormat.class);
+		FileInputFormat.addInputPath(job, new Path(inputPath));
 		FileOutputFormat.setOutputPath(job, new Path(outputPath));
 		
 		job.waitForCompletion(true);

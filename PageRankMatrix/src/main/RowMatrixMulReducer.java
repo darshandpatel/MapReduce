@@ -63,6 +63,7 @@ public class RowMatrixMulReducer extends Reducer<Cell, Cell, LongWritable, Doubl
         }
         
         System.out.println("****** PageRank Map size : "+pageRank.size());
+        System.out.println(" Dummy key value " + pageRank.get(Constant.DUMMY_LONG_ID));
         
         Path danglingNodePath = new Path(cacheFiles[1]);
 		fs = FileSystem.get(danglingNodePath.toUri(), conf);
@@ -79,9 +80,11 @@ public class RowMatrixMulReducer extends Reducer<Cell, Cell, LongWritable, Doubl
 	            while ((line = br.readLine()) != null){
 	            	String[] parts = line.split("\t");
 	            	Long danglingPageId = Long.parseLong(parts[1]);
-	            	Double rank = pageRank.get(danglingPageId);
-	            	if(rank == null){
+	            	Double rank;
+	            	if(!pageRank.containsKey(danglingPageId)){
 	            		rank = pageRank.get(Constant.DUMMY_LONG_ID);
+	            	}else{
+	            		rank = pageRank.get(danglingPageId);
 	            	}
 	            	mrMulRowValue += rank;
 	            }
@@ -99,10 +102,21 @@ public class RowMatrixMulReducer extends Reducer<Cell, Cell, LongWritable, Doubl
 		Double newPageRank = 0d;
 		Double pageRankContrSum = 0d;
 		//System.out.print("pageRankContrSum:");
+		
+		boolean first = true;
 		for(Cell cell : values){
-			Double prValue = pageRank.get(cell.getIndex());
-			pageRankContrSum += (cell.getContribution() * prValue);
-			//System.out.print(pageRankContrSum+":");
+			
+			if(first){
+				first = false;
+			}else{
+				Double prValue;
+				if(!pageRank.containsKey(cell.getIndex())){
+					prValue = pageRank.get(Constant.DUMMY_LONG_ID);
+				}else{
+					prValue = pageRank.get(cell.getIndex());
+				}
+				pageRankContrSum += (cell.getContribution() * prValue);
+			}
 		}
 		//System.out.println("");
 		newPageRank = ((alpha/pageCount) + (1-alpha)*(pageRankContrSum + mrMulRowValue));
@@ -110,6 +124,12 @@ public class RowMatrixMulReducer extends Reducer<Cell, Cell, LongWritable, Doubl
 		//System.out.println("row id: "+ key + " Adj list :"+length + " Page Rank Contrib Sum : "+
 		//pageRankContrSum + " alpha : "+alpha + " newPageRank :"+newPageRank + " mrMulRowValue : "+mrMulRowValue);
 		row.set(key.getIndex());
+		context.write(row, udpatedPageRank);
+	}
+	
+	public void cleanup(Context context) throws IOException, InterruptedException{
+		row.set(Constant.DUMMY_LONG_ID);
+		udpatedPageRank.set((alpha/pageCount) + (1-alpha)*mrMulRowValue);
 		context.write(row, udpatedPageRank);
 	}
 
