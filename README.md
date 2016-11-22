@@ -1,9 +1,9 @@
 # MapReduce
-CS 6240 MapReduce course Assignment
+CS 6240 MapReduce course Assignment<br />
 
-Assignments:
-1. Word Count
-2. Combiner and Secondary Sort
-3. Page Rank in Map Recue with Adjacency List approach
-4. Page Rank in Spark with Adjacency List approach
-5. Page Rank in Map Reduce with Matrix approach
+Assignments:<br />
+1. Word Count<br />
+2. Combiner and Secondary Sort<br />
+3. Page Rank in Map Recue with Adjacency List approach<br />
+4. Page Rank in Spark with Adjacency List approach<br />
+5. Page Rank in Map Reduce with Matrix approach<br />
